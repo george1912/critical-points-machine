@@ -38,6 +38,21 @@ app.innerHTML = `
         </div>
       </details>
 
+      <section class="tryout">
+        <p class="tryout-kicker">Try it out</p>
+        <p class="tryout-copy">
+          No report yet? Use our sample. No names. No school info. Just a practice ATI-style PDF.
+        </p>
+        <div class="tryout-actions">
+          <a
+            class="tryout-download"
+            href="./sample-ati-report.pdf"
+            download="sample-ati-report.pdf"
+          >Download sample report</a>
+          <button id="loadSampleReport" type="button" class="tryout-load">Use sample now</button>
+        </div>
+      </section>
+
       <section class="section control-grid tool-start">
         <div>
           <p class="section-kicker">Start here</p>
@@ -87,6 +102,7 @@ app.innerHTML = `
 const statusEl = document.querySelector('#status')
 const sourceReportEl = document.querySelector('#sourceReport')
 const extractButtonEl = document.querySelector('#extractFromReport')
+const loadSampleReportEl = document.querySelector('#loadSampleReport')
 const worksheetCardsEl = document.querySelector('#worksheetCards')
 const worksheetHintCardEl = document.querySelector('#worksheetHintCard')
 const generateCombinedButtonEl = document.querySelector('#generateCombined')
@@ -1397,6 +1413,13 @@ for (const worksheet of worksheetConfigs) {
 updateWorksheetFilenamePreviews()
 setWorksheetEditorVisibility(false)
 
+const runAutofillFromFile = async (file) => {
+  setStatus('Reading headings from report...')
+  const filledSummary = await extractAndPopulateWorksheets(file)
+  setWorksheetEditorVisibility(true)
+  setStatus(`Filled headings for: ${filledSummary}`)
+}
+
 extractButtonEl.addEventListener('click', async () => {
   try {
     const file = sourceReportEl.files?.[0]
@@ -1405,14 +1428,38 @@ extractButtonEl.addEventListener('click', async () => {
       return
     }
 
-    setStatus('Reading headings from report...')
-    const filledSummary = await extractAndPopulateWorksheets(file)
-    setWorksheetEditorVisibility(true)
-    setStatus(`Filled headings for: ${filledSummary}`)
+    await runAutofillFromFile(file)
   } catch (error) {
     console.error(error)
     setWorksheetEditorVisibility(false)
     setStatus(`Could not read that report PDF: ${formatError(error)}`, true)
+  }
+})
+
+loadSampleReportEl.addEventListener('click', async () => {
+  try {
+    loadSampleReportEl.disabled = true
+    setStatus('Loading sample report...')
+    const sampleUrl = new URL('sample-ati-report.pdf', document.baseURI).toString()
+    const response = await fetch(sampleUrl)
+    if (!response.ok) {
+      throw new Error(`Could not fetch sample report (${response.status}).`)
+    }
+
+    const blob = await response.blob()
+    const file = new File([blob], 'sample-ati-report.pdf', { type: 'application/pdf' })
+    const transfer = new DataTransfer()
+    transfer.items.add(file)
+    sourceReportEl.files = transfer.files
+
+    await runAutofillFromFile(file)
+    document.querySelector('.tool-start')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  } catch (error) {
+    console.error(error)
+    setWorksheetEditorVisibility(false)
+    setStatus(`Could not load the sample report: ${formatError(error)}`, true)
+  } finally {
+    loadSampleReportEl.disabled = false
   }
 })
 
@@ -1425,10 +1472,7 @@ sourceReportEl.addEventListener('change', async () => {
   }
 
   try {
-    setStatus('Reading headings from report...')
-    const filledSummary = await extractAndPopulateWorksheets(file)
-    setWorksheetEditorVisibility(true)
-    setStatus(`Filled headings for: ${filledSummary}`)
+    await runAutofillFromFile(file)
   } catch (error) {
     console.error(error)
     setWorksheetEditorVisibility(false)

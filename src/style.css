@@ -177,6 +177,69 @@ body {
   scroll-margin-top: 24px;
 }
 
+.tryout {
+  display: grid;
+  gap: 10px;
+  padding: 14px 0 4px;
+  text-align: center;
+}
+
+.tryout-kicker {
+  margin: 0;
+  color: var(--gray-soft);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tryout-copy {
+  margin: 0 auto;
+  max-width: 28rem;
+  color: var(--gray-3);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tryout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.tryout-download,
+.tryout-load {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.tryout-download {
+  border: 1px solid var(--gray-1);
+  background: var(--white);
+  color: var(--black);
+}
+
+.tryout-load {
+  border: 1px solid var(--black);
+  background: var(--black);
+  color: var(--white);
+}
+
+.tryout-download:hover,
+.tryout-load:hover {
+  opacity: 0.88;
+}
+
 .eyebrow {
   margin: 0;
   color: var(--gray-3);
