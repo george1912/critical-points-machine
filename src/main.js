@@ -33,29 +33,7 @@ app.innerHTML = `
         </summary>
         <div class="guide-body">
           <p class="guide-lead">
-            These are your three critical points worksheets (P1, P2, and P3).
-            This tool helps you fill the headers faster so you can focus on writing the points.
-          </p>
-          <ol class="guide-steps">
-            <li>
-              <strong>Upload your ATI report PDF</strong>
-              <span>Use the same results PDF you already download from ATI.</span>
-            </li>
-            <li>
-              <strong>We scan Topics to Review</strong>
-              <span>We pull the key areas and place them into Category, Sub Concept, and Content.</span>
-            </li>
-            <li>
-              <strong>You write the critical points</strong>
-              <span>Add your own learning points in each worksheet. Edit any header if you need to.</span>
-            </li>
-            <li>
-              <strong>Download your PDFs</strong>
-              <span>Save each worksheet, or combine all three into one PDF.</span>
-            </li>
-          </ol>
-          <p class="guide-note">
-            Your report stays on your device. This page only helps you build the worksheets.
+            Upload your ATI report. We fill the worksheet headers. You write the three points, then download.
           </p>
         </div>
       </details>
