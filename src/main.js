@@ -105,15 +105,13 @@ app.innerHTML = `
           If you hit a bug or error, email
           <a class="text-link" href="mailto:george.ulloa@downstate.edu?subject=Critical%20Points%20Machine%20bug">george.ulloa@downstate.edu</a>.
         </p>
-        <p>
-          Attach a screenshot and a sample file if you can.
-          The more information you share, the easier it is to fix :)
-        </p>
+        <p>Attach a screenshot and a sample file if you can.</p>
+        <p>The more information you share, the easier it is to fix. 😊</p>
       </section>
 
       <footer class="dev-credit">
         <div class="dev-credit-copy">
-          <p class="dev-credit-label">Developed by G.</p>
+          <p class="dev-credit-label">Developed by STG.</p>
           <p class="dev-credit-note">“Let's make life a little easier.”</p>
         </div>
         <img class="dev-credit-logo" src="./george-logo.png" alt="" width="56" height="56" />
