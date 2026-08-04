@@ -1491,7 +1491,7 @@ loadSampleReportEl.addEventListener('click', async () => {
   }
 })
 
-sourceReportEl.addEventListener('change', async () => {
+sourceReportEl.addEventListener('change', () => {
   const file = sourceReportEl.files?.[0]
   if (!file) {
     setWorksheetEditorVisibility(false)
@@ -1499,13 +1499,7 @@ sourceReportEl.addEventListener('change', async () => {
     return
   }
 
-  try {
-    await runAutofillFromFile(file)
-  } catch (error) {
-    console.error(error)
-    setWorksheetEditorVisibility(false)
-    setStatus(`Could not read that report PDF: ${formatError(error)}`, true)
-  }
+  setStatus(`Selected ${file.name}. Tap Autofill Headings From Report when you’re ready.`)
 })
 
 document.querySelector('#generateCombined').addEventListener('click', async () => {
