@@ -133,8 +133,10 @@ let cachedCategoryScores = []
 
 // Order matches common ATI major-area sequencing; optional rows (e.g. Psychosocial) may be
 // omitted on some assessments — parsing uses only categories that actually appear in the PDF.
+// ATI has renamed some labels across years (e.g. Safety…); keep current + legacy names.
 const KNOWN_CATEGORIES = [
   'Management of Care',
+  'Safety and Infection Prevention and Control',
   'Safety and Infection Control',
   'Health Promotion and Maintenance',
   'Psychosocial Integrity',
@@ -144,6 +146,22 @@ const KNOWN_CATEGORIES = [
   'Physiological Adaptation',
   'Clinical Judgment',
 ]
+
+/** Same NCLEX area under different ATI report wordings. */
+const CATEGORY_ALIAS_GROUPS = [
+  ['Safety and Infection Prevention and Control', 'Safety and Infection Control'],
+]
+
+const categoryNameVariants = (category) => {
+  const normalized = normalizeWhitespace(category)
+  const variants = new Set([normalized])
+  for (const group of CATEGORY_ALIAS_GROUPS) {
+    if (group.some((name) => name.toLowerCase() === normalized.toLowerCase())) {
+      for (const name of group) variants.add(name)
+    }
+  }
+  return [...variants]
+}
 
 const worksheetConfigs = [
   {
@@ -668,12 +686,68 @@ const parseCategoryScores = (fullText) => {
 
 const determineLowestCategories = (fullText, count = 3) => {
   const scores = parseCategoryScores(fullText)
-  return [...scores].sort((a, b) => a.score - b.score).slice(0, count)
+  return pickLowestCategoriesPreferringTopics(scores, fullText, count)
 }
 
 const mergeTopicBoundaries = (scoreCategories) => [
-  ...new Set([...scoreCategories, ...topicBoundaryLabels()]),
+  ...new Set([
+    ...scoreCategories,
+    ...scoreCategories.flatMap((c) => categoryNameVariants(c)),
+    ...topicBoundaryLabels(),
+  ]),
 ]
+
+/** Headed Topics To Review rows like `Clinical Judgment (12 items)`. */
+const listTopicsHeadingLabels = (fullText) => {
+  const topicsStart = findTopicsToReviewIndex(fullText)
+  if (topicsStart === -1) return []
+
+  const topicsTail = fullText.slice(topicsStart)
+  let topicsBlock = normalizeWhitespace(topicsTail.slice(0, findTopicsBlockEnd(topicsTail)))
+  // Drop the section title so it is not glued onto the first category heading.
+  topicsBlock = topicsBlock.replace(/^Topics\s+To\s+Review\s*/i, '')
+  const headingRe = /([A-Za-z][A-Za-z0-9/'&\-\s]+?)\s*\(\s*\d+\s*item[s]?\s*\)/gi
+  const labels = []
+  let match = headingRe.exec(topicsBlock)
+  while (match !== null) {
+    labels.push(normalizeWhitespace(match[1]))
+    match = headingRe.exec(topicsBlock)
+  }
+  return labels
+}
+
+const categoryAppearsInTopicsHeadings = (category, topicsHeadings) => {
+  const variants = categoryNameVariants(category).map((name) => name.toLowerCase())
+  return topicsHeadings.some((heading) => variants.includes(heading.toLowerCase()))
+}
+
+/**
+ * Prefer the weakest scores that also have a Topics To Review block.
+ * Perfect-score major areas often have no Topics heading — never invent error copy for them.
+ */
+const pickLowestCategoriesPreferringTopics = (scores, fullText, count = 3) => {
+  const sorted = [...scores].sort((a, b) => a.score - b.score)
+  const topicsHeadings = listTopicsHeadingLabels(fullText)
+  if (!topicsHeadings.length) return sorted.slice(0, count)
+
+  const withTopics = sorted.filter((entry) =>
+    categoryAppearsInTopicsHeadings(entry.category, topicsHeadings),
+  )
+  const withoutTopics = sorted.filter(
+    (entry) => !categoryAppearsInTopicsHeadings(entry.category, topicsHeadings),
+  )
+
+  const picked = []
+  for (const entry of withTopics) {
+    if (picked.length >= count) break
+    picked.push(entry)
+  }
+  for (const entry of withoutTopics) {
+    if (picked.length >= count) break
+    picked.push(entry)
+  }
+  return picked
+}
 
 /** Slice the Topics To Review block for one major category (shared by strict + soft extractors). */
 const sliceNormalizedTopicsForCategory = (fullText, category, boundaryCategories = KNOWN_CATEGORIES) => {
@@ -684,9 +758,17 @@ const sliceNormalizedTopicsForCategory = (fullText, category, boundaryCategories
   const topicsBlock = topicsTail.slice(0, findTopicsBlockEnd(topicsTail))
 
   const normalizedTopics = normalizeWhitespace(topicsBlock)
-  const escapedCategory = escapeRegExp(category).replace(/\s+/g, '\\s+')
-  const startRegex = new RegExp(`${escapedCategory}\\s*\\(\\d+\\s+item[s]?\\)`, 'i')
-  const startMatch = normalizedTopics.match(startRegex)
+  const categoryVariants = categoryNameVariants(category)
+  let startMatch = null
+  for (const variant of categoryVariants) {
+    const escapedCategory = escapeRegExp(variant).replace(/\s+/g, '\\s+')
+    const startRegex = new RegExp(`${escapedCategory}\\s*\\(\\d+\\s+item[s]?\\)`, 'i')
+    const attempt = normalizedTopics.match(startRegex)
+    if (attempt && attempt.index !== undefined) {
+      startMatch = attempt
+      break
+    }
+  }
 
   if (!startMatch || startMatch.index === undefined) {
     return { kind: 'error', code: 'no-category', normalizedTopics }
@@ -695,12 +777,14 @@ const sliceNormalizedTopicsForCategory = (fullText, category, boundaryCategories
   const startIndex = startMatch.index + startMatch[0].length
   let endIndex = normalizedTopics.length
 
-  const boundaries = [...new Set(boundaryCategories)].filter((c) => c && c !== category)
+  const boundaries = [
+    ...new Set(boundaryCategories.flatMap((c) => (c ? categoryNameVariants(c) : []))),
+  ].filter((c) => !categoryVariants.some((v) => v.toLowerCase() === c.toLowerCase()))
   const sortedBoundaries = [...boundaries].sort((a, b) => b.length - a.length)
 
   for (const nextCategory of sortedBoundaries) {
     const escapedNext = escapeRegExp(nextCategory).replace(/\s+/g, '\\s+')
-    const nextRegex = new RegExp(`${escapedNext}\\s*\\(\\d+\\s+item[s]?\\)`)
+    const nextRegex = new RegExp(`${escapedNext}\\s*\\(\\d+\\s+item[s]?\\)`, 'i')
     const nextMatch = normalizedTopics.slice(startIndex).match(nextRegex)
     if (nextMatch && nextMatch.index !== undefined) {
       endIndex = Math.min(endIndex, startIndex + nextMatch.index)
@@ -720,15 +804,10 @@ const sliceNormalizedTopicsForCategory = (fullText, category, boundaryCategories
 const extractFromMajorCategorySoft = (fullText, category, boundaryCategories = KNOWN_CATEGORIES) => {
   const sliced = sliceNormalizedTopicsForCategory(fullText, category, boundaryCategories)
   if (sliced.kind === 'error') {
-    if (sliced.code === 'no-category' && sliced.normalizedTopics) {
-      return {
-        subConcept: category,
-        content: `Topics To Review did not list “${category}” as a headed block — open the PDF and adjust Sub Concept/Content if needed.`,
-      }
-    }
+    // Never put diagnostic copy into the worksheet Content field.
     return {
       subConcept: category,
-      content: `See ATI Topics to Review for ${category}.`,
+      content: '',
     }
   }
 
@@ -736,7 +815,7 @@ const extractFromMajorCategorySoft = (fullText, category, boundaryCategories = K
   if (!section) {
     return {
       subConcept: category,
-      content: `Review the ${category} items listed under Topics to Review in your ATI report.`,
+      content: '',
     }
   }
 
@@ -782,7 +861,7 @@ const extractFromMajorCategorySoft = (fullText, category, boundaryCategories = K
 
   return {
     subConcept,
-    content: cleanedContent || rawContent || `Review ${category} in Topics to Review.`,
+    content: cleanedContent || rawContent || '',
   }
 }
 
@@ -806,7 +885,10 @@ const parseTopicsOnlyFallback = (fullText) => {
   let topicsBlock = normalized
   if (topicsStart !== -1) {
     const tail = normalized.slice(topicsStart)
-    topicsBlock = normalizeWhitespace(tail.slice(0, findTopicsBlockEnd(tail)))
+    topicsBlock = normalizeWhitespace(tail.slice(0, findTopicsBlockEnd(tail))).replace(
+      /^Topics\s+To\s+Review\s*/i,
+      '',
+    )
   } else {
     // Extreme extraction fallback: keep a large normalized window and look for heading rows globally.
     topicsBlock = normalizeWhitespace(normalized.slice(0, 18000))
@@ -845,7 +927,7 @@ const parseTopicsOnlyFallback = (fullText) => {
         content:
           removeSubConceptPrefixFromContent(mapped.subConcept || entry.category, mapped.content) ||
           mapped.content ||
-          `Review ${entry.category} in Topics to Review.`,
+          '',
       },
     }
   })
@@ -862,7 +944,7 @@ const parseTopicsOnlyFallback = (fullText) => {
           score: index,
           mapping: {
             subConcept: category,
-            content: content || `Review ${category} in Topics to Review.`,
+            content: content || '',
           },
         }
       })
@@ -1125,9 +1207,12 @@ const extractAndPopulateWorksheets = async (file) => {
 
   cachedCategoryScores = scores
 
-  const sortedByScore = [...scores].sort((a, b) => a.score - b.score)
   const boundaries = mergeTopicBoundaries(scores.map((entry) => entry.category))
-  const lowestThree = sortedByScore.slice(0, worksheetConfigs.length)
+  const lowestThree = pickLowestCategoriesPreferringTopics(
+    scores,
+    fullText,
+    worksheetConfigs.length,
+  )
 
   for (let i = 0; i < worksheetConfigs.length; i += 1) {
     const worksheet = worksheetConfigs[i]
