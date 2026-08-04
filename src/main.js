@@ -83,24 +83,28 @@ app.innerHTML = `
         <button id="generateCombined" type="button">Generate Combined PDF</button>
       </section>
 
-      <section class="human-check">
-        <p class="human-check-kicker">Before you submit</p>
-        <p class="human-check-copy">
+      <section class="section control-grid human-check">
+        <div>
+          <p class="section-kicker">Before you submit</p>
+          <p class="section-title">Check your work</p>
+        </div>
+        <p class="template-note">
           Tools aren’t perfect. It’s up to the human to make sure your work is correct.
-          We want everyone to do their best — compare your output to the official reference
+          We want everyone to do their best, so compare your output to the official reference
           grading criteria below.
         </p>
-        <p class="human-check-links">
-          <a class="text-link" href="./exemplar-3-critical-points.pdf" download="exemplar-3-critical-points.pdf">Download official reference grading criteria</a>
-        </p>
-        <p class="human-check-copy human-check-email">
+        <a
+          class="button-link"
+          href="./exemplar-3-critical-points.pdf"
+          download="exemplar-3-critical-points.pdf"
+        >Download Official Reference Grading Criteria</a>
+      </section>
+
+      <section class="contact-note">
+        <p>
           If you hit a bug or error, email
           <a class="text-link" href="mailto:george.ulloa@downstate.edu?subject=Critical%20Points%20Machine%20bug">george.ulloa@downstate.edu</a>.
-          Attach a screenshot and a sample file if you can — that makes it much easier to fix.
-        </p>
-        <p class="sample-disclaimer">
-          Practice file only (no personal data):
-          <a class="text-link" href="./sample-ati-report.pdf" download="sample-ati-report.pdf">Download Report</a>
+          Attach a screenshot and a sample file if you can. That makes it much easier to fix.
         </p>
       </section>
 
