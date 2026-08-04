@@ -15,26 +15,59 @@ app.innerHTML = `
     <div class="device-frame">
       <div class="topbar">
         <p class="ui-proto-banner">Critical Points Machine</p>
-        <p class="topbar-meta">v1.1</p>
+        <p class="topbar-meta">Live web app</p>
       </div>
 
       <header class="hero">
         <p class="eyebrow">Critical Points Machine</p>
         <h1>Worksheet<br /><span class="title-accent">Filler</span></h1>
         <p class="lede">
-          Upload one ATI report. We fill the worksheet headers.<br />
-          You write the critical points.
+          A simple web tool for your ATI critical points worksheets.<br />
+          Use it on any computer — nothing to install.
         </p>
       </header>
 
-      <section class="section control-grid">
+      <details class="guide" open>
+        <summary class="guide-summary">
+          <span class="guide-summary-label">How it works</span>
+          <span class="guide-summary-hint">Tap to open or close</span>
+        </summary>
+        <div class="guide-body">
+          <p class="guide-lead">
+            These are your three critical points worksheets (P1, P2, and P3).
+            This tool helps you fill the headers faster so you can focus on writing the points.
+          </p>
+          <ol class="guide-steps">
+            <li>
+              <strong>Upload your ATI report PDF</strong>
+              <span>Use the same results PDF you already download from ATI.</span>
+            </li>
+            <li>
+              <strong>We scan Topics to Review</strong>
+              <span>We pull the key areas and place them into Category, Sub Concept, and Content.</span>
+            </li>
+            <li>
+              <strong>You write the critical points</strong>
+              <span>Add your own learning points in each worksheet. Edit any header if you need to.</span>
+            </li>
+            <li>
+              <strong>Download your PDFs</strong>
+              <span>Save each worksheet, or combine all three into one PDF.</span>
+            </li>
+          </ol>
+          <p class="guide-note">
+            Your report stays on your device. This page only helps you build the worksheets.
+          </p>
+        </div>
+      </details>
+
+      <section class="section control-grid tool-start">
         <div>
-          <p class="section-kicker">Source</p>
+          <p class="section-kicker">Start here</p>
           <p class="section-title">ATI Report PDF</p>
         </div>
         <p class="template-note">
-          We scan your report and pull the key topics to review.<br />
-          Those become the Category, Sub Concept, and Content headers so you can finish the worksheets yourself.
+          Choose your report, then autofill the worksheet headers.
         </p>
         <label class="file-field">
           <span class="visually-hidden">Choose ATI report PDF</span>
