@@ -261,6 +261,8 @@ body {
 }
 
 .contact-note {
+  display: grid;
+  gap: 6px;
   padding: 8px 0 4px;
 }
 

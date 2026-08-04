@@ -104,7 +104,10 @@ app.innerHTML = `
         <p>
           If you hit a bug or error, email
           <a class="text-link" href="mailto:george.ulloa@downstate.edu?subject=Critical%20Points%20Machine%20bug">george.ulloa@downstate.edu</a>.
-          Attach a screenshot and a sample file if you can. That makes it much easier to fix.
+        </p>
+        <p>
+          Attach a screenshot and a sample file if you can.
+          The more information you share, the easier it is to fix :)
         </p>
       </section>
 
