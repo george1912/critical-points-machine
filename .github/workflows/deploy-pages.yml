@@ -34,6 +34,8 @@ jobs:
         run: npm run build
         env:
           VITE_BASE: /critical-points-machine/
+          VITE_BUG_WEBHOOK_URL: ${{ secrets.BUG_WEBHOOK_URL }}
+          VITE_ADMIN_PASS_HASH: ${{ secrets.ADMIN_PASS_HASH }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -41,16 +41,9 @@ app.innerHTML = `
       <section class="tryout">
         <p class="tryout-kicker">Try it out</p>
         <p class="tryout-copy">
-          No report yet? Use our sample. No names. No school info. Just a practice ATI-style PDF.
+          No report yet? Use our sample. No names. No school info.
+          <a class="text-link" href="./sample-ati-report.pdf" download="sample-ati-report.pdf">Download Report</a>
         </p>
-        <div class="tryout-actions">
-          <a
-            class="tryout-download"
-            href="./sample-ati-report.pdf"
-            download="sample-ati-report.pdf"
-          >Download sample report</a>
-          <button id="loadSampleReport" type="button" class="tryout-load">Use sample now</button>
-        </div>
       </section>
 
       <section class="section control-grid tool-start">
@@ -88,6 +81,20 @@ app.innerHTML = `
         <button id="generateCombined" type="button">Generate Combined PDF</button>
       </section>
 
+      <section class="human-check">
+        <p class="human-check-kicker">Before you submit</p>
+        <p class="human-check-copy">
+          Tools aren’t perfect. It’s up to the human to make sure your work is correct.
+          We want everyone to do their best — so here’s a sample reference you can compare
+          your output to. If you spot a bug, please let us know.
+        </p>
+        <p class="human-check-links">
+          <a class="text-link" href="./exemplar-3-critical-points.pdf" download="exemplar-3-critical-points.pdf">Download sample reference</a>
+          <span class="human-check-sep" aria-hidden="true">·</span>
+          <a class="text-link" href="./bug.html">Report a bug</a>
+        </p>
+      </section>
+
       <footer class="dev-credit">
         <div class="dev-credit-copy">
           <p class="dev-credit-label">Developed by G.</p>
@@ -102,7 +109,6 @@ app.innerHTML = `
 const statusEl = document.querySelector('#status')
 const sourceReportEl = document.querySelector('#sourceReport')
 const extractButtonEl = document.querySelector('#extractFromReport')
-const loadSampleReportEl = document.querySelector('#loadSampleReport')
 const worksheetCardsEl = document.querySelector('#worksheetCards')
 const worksheetHintCardEl = document.querySelector('#worksheetHintCard')
 const generateCombinedButtonEl = document.querySelector('#generateCombined')
@@ -1433,33 +1439,6 @@ extractButtonEl.addEventListener('click', async () => {
     console.error(error)
     setWorksheetEditorVisibility(false)
     setStatus(`Could not read that report PDF: ${formatError(error)}`, true)
-  }
-})
-
-loadSampleReportEl.addEventListener('click', async () => {
-  try {
-    loadSampleReportEl.disabled = true
-    setStatus('Loading sample report...')
-    const sampleUrl = new URL('sample-ati-report.pdf', document.baseURI).toString()
-    const response = await fetch(sampleUrl)
-    if (!response.ok) {
-      throw new Error(`Could not fetch sample report (${response.status}).`)
-    }
-
-    const blob = await response.blob()
-    const file = new File([blob], 'sample-ati-report.pdf', { type: 'application/pdf' })
-    const transfer = new DataTransfer()
-    transfer.items.add(file)
-    sourceReportEl.files = transfer.files
-
-    await runAutofillFromFile(file)
-    document.querySelector('.tool-start')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  } catch (error) {
-    console.error(error)
-    setWorksheetEditorVisibility(false)
-    setStatus(`Could not load the sample report: ${formatError(error)}`, true)
-  } finally {
-    loadSampleReportEl.disabled = false
   }
 })
 
