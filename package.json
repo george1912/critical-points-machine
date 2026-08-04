@@ -1,0 +1,49 @@
+{
+  "name": "critical-point-worksheet-machine",
+  "productName": "Critical Points Worksheet Filler",
+  "version": "1.1.0",
+  "description": "Auto-fill ATI 3 Critical Points worksheets from report PDFs",
+  "author": "Critical Points Worksheet Machine",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron": "vite build && electron .",
+    "dist:mac": "bash scripts/build-dmg.sh"
+  },
+  "devDependencies": {
+    "debug": "^4.4.3",
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12",
+    "vite": "^8.0.9"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^3.11.174"
+  },
+  "build": {
+    "appId": "com.criticalpoints.worksheetfiller",
+    "productName": "Critical Points Worksheet Filler",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.education",
+      "target": [
+        "dir"
+      ],
+      "identity": null
+    },
+    "dmg": {
+      "title": "Critical Points Worksheet Filler"
+    }
+  }
+}
