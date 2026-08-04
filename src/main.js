@@ -41,10 +41,12 @@ app.innerHTML = `
         <p class="tryout-kicker">Try it out</p>
         <p class="tryout-title">Want to see it work?</p>
         <p class="tryout-copy">
-          Tap below to load a practice ATI report with no names or school info.
-          Then watch the worksheets fill in.
+          Download our practice ATI report (no names or school info), then we’ll load it
+          so you can watch the worksheets fill in.
         </p>
-        <button id="loadSampleReport" type="button" class="tryout-cta">Use practice sample</button>
+        <button id="loadSampleReport" type="button" class="tryout-cta">
+          Download practice ATI report
+        </button>
       </section>
 
       <section class="section control-grid tool-start">
@@ -1456,10 +1458,21 @@ extractButtonEl.addEventListener('click', async () => {
   }
 })
 
+const downloadBlobFile = (blob, filename) => {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 loadSampleReportEl.addEventListener('click', async () => {
   try {
     loadSampleReportEl.disabled = true
-    setStatus('Loading practice sample…')
+    setStatus('Downloading practice ATI report…')
     const sampleUrl = new URL('sample-ati-report.pdf', document.baseURI).toString()
     const response = await fetch(sampleUrl)
     if (!response.ok) {
@@ -1467,17 +1480,20 @@ loadSampleReportEl.addEventListener('click', async () => {
     }
 
     const blob = await response.blob()
-    const file = new File([blob], 'sample-ati-report.pdf', { type: 'application/pdf' })
+    downloadBlobFile(blob, 'practice-sample-ati-report.pdf')
+
+    const file = new File([blob], 'practice-sample-ati-report.pdf', { type: 'application/pdf' })
     const transfer = new DataTransfer()
     transfer.items.add(file)
     sourceReportEl.files = transfer.files
 
     await runAutofillFromFile(file)
     document.querySelector('.tool-start')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setStatus('Practice ATI report downloaded and loaded into the tool.')
   } catch (error) {
     console.error(error)
     setWorksheetEditorVisibility(false)
-    setStatus(`Could not load the practice sample: ${formatError(error)}`, true)
+    setStatus(`Could not download the practice sample: ${formatError(error)}`, true)
   } finally {
     loadSampleReportEl.disabled = false
   }
