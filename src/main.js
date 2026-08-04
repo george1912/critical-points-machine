@@ -39,7 +39,7 @@ app.innerHTML = `
 
       <section class="tryout">
         <p class="tryout-kicker">Try it out</p>
-        <p class="tryout-title">Want to see it work first?</p>
+        <p class="tryout-title">Want to see it work?</p>
         <p class="tryout-copy">
           Tap below to load a practice ATI report with no names or school info.
           Then watch the worksheets fill in.
