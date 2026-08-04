@@ -14,15 +14,10 @@ app.innerHTML = `
   <main class="shell">
     <div class="device-frame">
       <div class="topbar">
-        <div class="topbar-brand">
-          <img class="brand-mark" src="./stg-logo.png" alt="" width="36" height="36" />
-          <p class="ui-proto-banner">Critical Points Machine</p>
-        </div>
         <p class="topbar-meta">Live web app</p>
       </div>
 
       <header class="hero">
-        <img class="hero-logo" src="./stg-logo.png" alt="STG logo" width="72" height="72" />
         <p class="eyebrow">Critical Points Machine</p>
         <h1>Worksheet<br /><span class="title-accent">Filler</span></h1>
         <p class="lede">

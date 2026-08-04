@@ -95,31 +95,8 @@ body {
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--space-16);
-}
-
-.topbar-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.brand-mark,
-.hero-logo,
-.dev-credit-logo {
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-}
-
-.brand-mark {
-  width: 36px;
-  height: 36px;
-  object-fit: contain;
-  flex-shrink: 0;
-  border-radius: 8px;
-  background: #fff;
 }
 
 .topbar-meta {
@@ -131,26 +108,10 @@ body {
   text-align: right;
 }
 
-.ui-proto-banner {
-  margin: 0;
-  color: var(--gray-soft);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
 .hero {
   display: grid;
   gap: var(--space-12);
   padding-top: var(--space-6);
-}
-
-.hero-logo {
-  width: 72px;
-  height: 72px;
-  object-fit: contain;
-  border-radius: 12px;
-  background: #fff;
 }
 
 .guide {
@@ -593,6 +554,8 @@ button:disabled {
   flex-shrink: 0;
   border-radius: 10px;
   background: #fff;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 .dev-credit-copy {
