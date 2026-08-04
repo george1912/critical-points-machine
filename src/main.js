@@ -1059,6 +1059,25 @@ const wrapTextByWidth = (text, font, size, maxWidth) => {
   return lines
 }
 
+/**
+ * Helvetica (WinAnsi) can't draw Unicode ligatures like ﬂ/ﬁ from ATI PDF text.
+ * Normalize to plain ASCII-safe Latin so PDF generation never crashes.
+ */
+const sanitizePdfText = (text) => {
+  let value = String(text ?? '')
+    .normalize('NFKC')
+    .replace(/\u00A0/g, ' ')
+    .replace(/[\u2018\u2019\u201A\u2032]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u2033]/g, '"')
+    .replace(/[\u2013\u2014\u2212]/g, '-')
+    .replace(/\u2026/g, '...')
+    .replace(/\u2044/g, '/')
+
+  // Drop anything still outside Latin-1 / common WinAnsi-safe range.
+  value = value.replace(/[^\t\n\r\x20-\x7E\xA0-\xFF]/g, '')
+  return value
+}
+
 const drawWrappedTextBlock = ({
   page,
   text,
@@ -1070,7 +1089,7 @@ const drawWrappedTextBlock = ({
   maxHeight,
   lineHeight,
 }) => {
-  const lines = wrapTextByWidth(text, font, size, maxWidth)
+  const lines = wrapTextByWidth(sanitizePdfText(text), font, size, maxWidth)
   const maxLines = Math.max(1, Math.floor(maxHeight / lineHeight))
 
   for (let i = 0; i < Math.min(lines.length, maxLines); i += 1) {
@@ -1273,9 +1292,9 @@ const extractAndPopulateWorksheets = async (file) => {
       fallbackRow?.mapping ??
       extractTopicMappingBestEffort(fullText, scoredCategory.category, boundaries)
     setWorksheetValues(worksheet.id, {
-      clientCareNeedCategory: scoredCategory.category,
-      subConcept: mapping.subConcept,
-      content: mapping.content,
+      clientCareNeedCategory: sanitizePdfText(scoredCategory.category),
+      subConcept: sanitizePdfText(mapping.subConcept),
+      content: sanitizePdfText(mapping.content),
       criticalPoint1: '',
       criticalPoint2: '',
       criticalPoint3: '',
@@ -1286,10 +1305,10 @@ const extractAndPopulateWorksheets = async (file) => {
 
   const usingSyntheticScores = fallbackTopicRows.length > 0
   const filledSummary = usingSyntheticScores
-    ? lowestThree.map((entry, index) => `P${index + 1}: ${entry.category}`).join(' | ')
+    ? lowestThree.map((entry, index) => `P${index + 1}: ${entry.category}`).join('\n')
     : lowestThree
         .map((entry, index) => `P${index + 1}: ${entry.category} (${entry.score.toFixed(1)}%)`)
-        .join(' | ')
+        .join('\n')
 
   return filledSummary
 }
@@ -1439,7 +1458,7 @@ const runAutofillFromFile = async (file) => {
   setStatus('Reading headings from report...')
   const filledSummary = await extractAndPopulateWorksheets(file)
   setWorksheetEditorVisibility(true)
-  setStatus(`Filled headings for: ${filledSummary}`)
+    setStatus(`Filled headings for:\n${filledSummary}`)
 }
 
 extractButtonEl.addEventListener('click', async () => {
