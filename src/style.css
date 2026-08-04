@@ -451,6 +451,7 @@ button:disabled {
 .dev-credit {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 14px;
   margin-top: 8px;
   padding-top: 22px;
@@ -485,4 +486,5 @@ button:disabled {
   font-size: 13px;
   letter-spacing: 0.01em;
   line-height: 1.4;
+  font-style: italic;
 }

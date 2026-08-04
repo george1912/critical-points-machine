@@ -74,11 +74,11 @@ app.innerHTML = `
       </section>
 
       <footer class="dev-credit">
-        <img class="dev-credit-logo" src="./george-logo.png" alt="" width="56" height="56" />
         <div class="dev-credit-copy">
-          <p class="dev-credit-label">Developed by George</p>
-          <p class="dev-credit-note">Let's make life a little easier.</p>
+          <p class="dev-credit-label">Developed by G.</p>
+          <p class="dev-credit-note">“Let's make life a little easier.”</p>
         </div>
+        <img class="dev-credit-logo" src="./george-logo.png" alt="" width="56" height="56" />
       </footer>
     </div>
   </main>
@@ -1156,6 +1156,35 @@ const buildCombinedOutputFilename = () => {
   return `${baseName}-p1-p2-p3-combined.pdf`
 }
 
+/**
+ * Browsers may overwrite same-named downloads (esp. Safari). We add (2), (3), …
+ * ourselves so each save keeps the previous file.
+ */
+const allocateUniqueDownloadFilename = (filename) => {
+  const match = filename.match(/^(.*?)(\.[^.]+)?$/)
+  const stem = match?.[1] || filename
+  const ext = match?.[2] || ''
+  const storageKey = `cpws:download-count:${stem}`
+
+  let count = 0
+  try {
+    count = Number.parseInt(localStorage.getItem(storageKey) || '0', 10)
+    if (!Number.isFinite(count) || count < 0) count = 0
+  } catch {
+    count = 0
+  }
+
+  count += 1
+  try {
+    localStorage.setItem(storageKey, String(count))
+  } catch {
+    // Private mode / blocked storage — still return a unique-enough name.
+    return count === 1 ? `${stem}${ext}` : `${stem} (${count})${ext}`
+  }
+
+  return count === 1 ? `${stem}${ext}` : `${stem} (${count})${ext}`
+}
+
 const updateWorksheetFilenamePreviews = () => {
   for (const worksheet of worksheetConfigs) {
     const filenameEl = document.querySelector(`#${worksheet.id}-filename`)
@@ -1324,7 +1353,7 @@ const triggerPdfDownload = (bytes, filename) => {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
-  anchor.download = filename
+  anchor.download = allocateUniqueDownloadFilename(filename)
   anchor.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
