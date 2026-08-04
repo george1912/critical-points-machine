@@ -40,10 +40,12 @@ app.innerHTML = `
 
       <section class="tryout">
         <p class="tryout-kicker">Try it out</p>
+        <p class="tryout-title">Want to see it work first?</p>
         <p class="tryout-copy">
-          No report yet? Use our sample. No names. No school info.
-          <a class="text-link" href="./sample-ati-report.pdf" download="sample-ati-report.pdf">Download Report</a>
+          Tap below to load a practice ATI report with no names or school info.
+          Then watch the worksheets fill in.
         </p>
+        <button id="loadSampleReport" type="button" class="tryout-cta">Use practice sample</button>
       </section>
 
       <section class="section control-grid tool-start">
@@ -85,13 +87,20 @@ app.innerHTML = `
         <p class="human-check-kicker">Before you submit</p>
         <p class="human-check-copy">
           Tools aren’t perfect. It’s up to the human to make sure your work is correct.
-          We want everyone to do their best — so here’s a sample reference you can compare
-          your output to. If you spot a bug, please let us know.
+          We want everyone to do their best — compare your output to the official reference
+          grading criteria below.
         </p>
         <p class="human-check-links">
-          <a class="text-link" href="./exemplar-3-critical-points.pdf" download="exemplar-3-critical-points.pdf">Download sample reference</a>
-          <span class="human-check-sep" aria-hidden="true">·</span>
-          <a class="text-link" href="./bug.html">Report a bug</a>
+          <a class="text-link" href="./exemplar-3-critical-points.pdf" download="exemplar-3-critical-points.pdf">Download official reference grading criteria</a>
+        </p>
+        <p class="human-check-copy human-check-email">
+          If you hit a bug or error, email
+          <a class="text-link" href="mailto:george.ulloa@downstate.edu?subject=Critical%20Points%20Machine%20bug">george.ulloa@downstate.edu</a>.
+          Attach a screenshot and a sample file if you can — that makes it much easier to fix.
+        </p>
+        <p class="sample-disclaimer">
+          Practice file only (no personal data):
+          <a class="text-link" href="./sample-ati-report.pdf" download="sample-ati-report.pdf">Download Report</a>
         </p>
       </section>
 
@@ -109,6 +118,7 @@ app.innerHTML = `
 const statusEl = document.querySelector('#status')
 const sourceReportEl = document.querySelector('#sourceReport')
 const extractButtonEl = document.querySelector('#extractFromReport')
+const loadSampleReportEl = document.querySelector('#loadSampleReport')
 const worksheetCardsEl = document.querySelector('#worksheetCards')
 const worksheetHintCardEl = document.querySelector('#worksheetHintCard')
 const generateCombinedButtonEl = document.querySelector('#generateCombined')
@@ -1439,6 +1449,33 @@ extractButtonEl.addEventListener('click', async () => {
     console.error(error)
     setWorksheetEditorVisibility(false)
     setStatus(`Could not read that report PDF: ${formatError(error)}`, true)
+  }
+})
+
+loadSampleReportEl.addEventListener('click', async () => {
+  try {
+    loadSampleReportEl.disabled = true
+    setStatus('Loading practice sample…')
+    const sampleUrl = new URL('sample-ati-report.pdf', document.baseURI).toString()
+    const response = await fetch(sampleUrl)
+    if (!response.ok) {
+      throw new Error(`Could not fetch practice sample (${response.status}).`)
+    }
+
+    const blob = await response.blob()
+    const file = new File([blob], 'sample-ati-report.pdf', { type: 'application/pdf' })
+    const transfer = new DataTransfer()
+    transfer.items.add(file)
+    sourceReportEl.files = transfer.files
+
+    await runAutofillFromFile(file)
+    document.querySelector('.tool-start')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  } catch (error) {
+    console.error(error)
+    setWorksheetEditorVisibility(false)
+    setStatus(`Could not load the practice sample: ${formatError(error)}`, true)
+  } finally {
+    loadSampleReportEl.disabled = false
   }
 })
 
