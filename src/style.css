@@ -371,7 +371,60 @@ code {
 }
 
 .file-field {
-  display: block;
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  min-height: 120px;
+  padding: 22px 18px;
+  border: 1.5px dashed var(--gray-2);
+  border-radius: var(--radius-field);
+  background: #fafafa;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.file-field:hover,
+.file-field.is-dragover {
+  border-color: var(--black);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.06);
+}
+
+.file-field.is-dragover {
+  border-style: solid;
+  background: var(--pop-soft);
+}
+
+.file-field-copy {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.file-field-title {
+  color: var(--black);
+  font-size: 15px;
+  letter-spacing: 0.01em;
+}
+
+.file-field-hint {
+  color: var(--gray-soft);
+  font-size: 13px;
+}
+
+.file-field input[type='file'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .worksheets-grid {

@@ -55,9 +55,13 @@ app.innerHTML = `
           <p class="section-title">ATI Report PDF</p>
         </div>
         <p class="template-note">
-          Choose your report, then autofill the worksheet headers.
+          Choose your report or drag it onto the box below, then autofill the worksheet headers.
         </p>
-        <label class="file-field">
+        <label class="file-field" id="sourceReportDropzone">
+          <span class="file-field-copy">
+            <span class="file-field-title">Drop ATI report PDF here</span>
+            <span class="file-field-hint">or click to choose a file</span>
+          </span>
           <span class="visually-hidden">Choose ATI report PDF</span>
           <input id="sourceReport" type="file" accept=".pdf,application/pdf" />
         </label>
@@ -123,6 +127,7 @@ app.innerHTML = `
 
 const statusEl = document.querySelector('#status')
 const sourceReportEl = document.querySelector('#sourceReport')
+const sourceReportDropzoneEl = document.querySelector('#sourceReportDropzone')
 const extractButtonEl = document.querySelector('#extractFromReport')
 const loadSampleReportEl = document.querySelector('#loadSampleReport')
 const worksheetCardsEl = document.querySelector('#worksheetCards')
@@ -1519,6 +1524,62 @@ sourceReportEl.addEventListener('change', () => {
   }
 
   setStatus(`Selected ${file.name}. Tap Autofill Headings From Report when you’re ready.`)
+})
+
+const isPdfFile = (file) => {
+  if (!file) return false
+  const type = String(file.type || '').toLowerCase()
+  const name = String(file.name || '').toLowerCase()
+  return type === 'application/pdf' || name.endsWith('.pdf')
+}
+
+const assignReportFile = (file) => {
+  if (!isPdfFile(file)) {
+    setStatus('Please drop a PDF report file.', true)
+    return
+  }
+
+  const transfer = new DataTransfer()
+  transfer.items.add(file)
+  sourceReportEl.files = transfer.files
+  setStatus(`Selected ${file.name}. Tap Autofill Headings From Report when you’re ready.`)
+}
+
+;['dragenter', 'dragover'].forEach((eventName) => {
+  sourceReportDropzoneEl.addEventListener(eventName, (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    sourceReportDropzoneEl.classList.add('is-dragover')
+  })
+})
+
+sourceReportDropzoneEl.addEventListener('dragleave', (event) => {
+  event.preventDefault()
+  event.stopPropagation()
+  if (!sourceReportDropzoneEl.contains(event.relatedTarget)) {
+    sourceReportDropzoneEl.classList.remove('is-dragover')
+  }
+})
+
+sourceReportDropzoneEl.addEventListener('drop', (event) => {
+  event.preventDefault()
+  event.stopPropagation()
+  sourceReportDropzoneEl.classList.remove('is-dragover')
+  const file = event.dataTransfer?.files?.[0]
+  if (!file) {
+    setStatus('No file found in that drop. Try again.', true)
+    return
+  }
+  assignReportFile(file)
+})
+
+// Keep page from navigating if a PDF is dropped outside the box.
+;['dragover', 'drop'].forEach((eventName) => {
+  window.addEventListener(eventName, (event) => {
+    if (event.dataTransfer?.types?.includes('Files')) {
+      event.preventDefault()
+    }
+  })
 })
 
 document.querySelector('#generateCombined').addEventListener('click', async () => {
