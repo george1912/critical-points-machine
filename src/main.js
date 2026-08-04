@@ -41,8 +41,8 @@ app.innerHTML = `
         <p class="tryout-kicker">Try it out</p>
         <p class="tryout-title">Want to see it work?</p>
         <p class="tryout-copy">
-          Download our practice ATI report (no names or school info), then we’ll load it
-          so you can watch the worksheets fill in.
+          Download our practice ATI report (no names or school info). Then choose that file below
+          and tap Autofill — same steps you’ll use with your real report.
         </p>
         <button id="loadSampleReport" type="button" class="tryout-cta">
           Download practice ATI report
@@ -1481,18 +1481,10 @@ loadSampleReportEl.addEventListener('click', async () => {
 
     const blob = await response.blob()
     downloadBlobFile(blob, 'practice-sample-ati-report.pdf')
-
-    const file = new File([blob], 'practice-sample-ati-report.pdf', { type: 'application/pdf' })
-    const transfer = new DataTransfer()
-    transfer.items.add(file)
-    sourceReportEl.files = transfer.files
-
-    await runAutofillFromFile(file)
+    setStatus('Practice ATI report downloaded. Choose that file below, then tap Autofill.')
     document.querySelector('.tool-start')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    setStatus('Practice ATI report downloaded and loaded into the tool.')
   } catch (error) {
     console.error(error)
-    setWorksheetEditorVisibility(false)
     setStatus(`Could not download the practice sample: ${formatError(error)}`, true)
   } finally {
     loadSampleReportEl.disabled = false
