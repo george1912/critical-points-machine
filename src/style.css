@@ -132,9 +132,9 @@ body {
 .guide-summary {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-12);
-  padding: 16px 18px;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
   cursor: pointer;
   list-style: none;
   color: var(--black);
@@ -145,20 +145,14 @@ body {
 }
 
 .guide-summary-label {
-  font-size: 18px;
-  letter-spacing: -0.02em;
-}
-
-.guide-summary-hint {
-  color: var(--gray-soft);
-  font-size: 13px;
-  letter-spacing: 0.02em;
+  font-size: 15px;
+  letter-spacing: -0.01em;
 }
 
 .guide-summary::after {
   content: '+';
   color: var(--pop);
-  font-size: 22px;
+  font-size: 16px;
   line-height: 1;
 }
 

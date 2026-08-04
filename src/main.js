@@ -27,10 +27,9 @@ app.innerHTML = `
         </p>
       </header>
 
-      <details class="guide" open>
+      <details class="guide">
         <summary class="guide-summary">
           <span class="guide-summary-label">How it works</span>
-          <span class="guide-summary-hint">Tap to open or close</span>
         </summary>
         <div class="guide-body">
           <p class="guide-lead">
