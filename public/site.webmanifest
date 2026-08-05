@@ -1,7 +1,7 @@
 {
   "name": "Critical Points Machine",
   "short_name": "Critical Points",
-  "description": "Fill ATI critical points worksheets from your report PDF.",
+  "description": "Formats ATI worksheet headers from your report. You write the critical points.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",

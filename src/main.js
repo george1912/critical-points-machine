@@ -19,10 +19,10 @@ app.innerHTML = `
 
       <header class="hero">
         <p class="eyebrow">Critical Points Machine</p>
-        <h1>Worksheet<br /><span class="title-accent">Filler</span></h1>
+        <h1>Worksheet<br /><span class="title-accent">Formatter</span></h1>
         <p class="lede">
-          A simple web tool for your ATI critical points worksheets.<br />
-          Use it on any computer — nothing to install.
+          We help with the busywork: report headers into the form.<br />
+          You still think through and write the three critical points.
         </p>
       </header>
 
@@ -32,19 +32,20 @@ app.innerHTML = `
         </summary>
         <div class="guide-body">
           <p class="guide-lead">
-            Upload your ATI report. We fill the worksheet headers. You write the three points, then download.
+            This does not write your critical points. It formats Category, Sub Concept, and Content
+            from your ATI report so you can focus on the thinking. Then you download your worksheets.
           </p>
         </div>
       </details>
 
       <section class="tryout">
-        <p class="tryout-kicker">Try it out</p>
-        <p class="tryout-title">Want to see it work?</p>
+        <p class="tryout-kicker">Try a sample</p>
+        <p class="tryout-title">Want to see the easy part?</p>
         <p class="tryout-copy">
-          Download our practice ATI report (no names or school info). Then choose that file below
-          and tap Autofill — same steps you’ll use with your real report.
+          Grab a practice ATI report (no names). Upload it below, fill the headers, then you write
+          the points. Same flow as a real assignment.
         </p>
-        <button id="loadSampleReport" type="button" class="tryout-cta">
+        <button id="loadSampleReport" type="button" class="tryout-cta tryout-cta-bounce">
           Download practice ATI report
         </button>
       </section>
@@ -55,7 +56,7 @@ app.innerHTML = `
           <p class="section-title">ATI Report PDF</p>
         </div>
         <p class="template-note">
-          Choose your report or drag it onto the box below, then autofill the worksheet headers.
+          Drop or choose your report, then fill the headers. The critical points are still yours to write.
         </p>
         <label class="file-field" id="sourceReportDropzone">
           <span class="file-field-copy">
@@ -65,7 +66,7 @@ app.innerHTML = `
           <span class="visually-hidden">Choose ATI report PDF</span>
           <input id="sourceReport" type="file" accept=".pdf,application/pdf" />
         </label>
-        <button id="extractFromReport" type="button">Autofill Headings From Report</button>
+        <button id="extractFromReport" type="button">Fill headers from report</button>
         <p id="status" aria-live="polite"></p>
       </section>
 
@@ -74,18 +75,20 @@ app.innerHTML = `
           <p class="section-kicker">Worksheets</p>
           <p class="section-title">Waiting</p>
         </div>
-        <p id="worksheetHint">After autofill, your three worksheets appear here for review and editing.</p>
+        <p id="worksheetHint">
+          After headers are filled, your three worksheets show up here. Add your own critical points, then save.
+        </p>
       </section>
 
       <section id="worksheetCards" class="worksheets-grid is-hidden"></section>
 
       <section class="section control-grid">
         <div>
-          <p class="section-kicker">Export</p>
+          <p class="section-kicker">Save</p>
           <p class="section-title">Three Worksheets<br /><span class="title-line">One PDF</span></p>
         </div>
-        <p class="template-note">Review P1–P3, then save them together.</p>
-        <button id="generateCombined" type="button">Generate Combined PDF</button>
+        <p class="template-note">Review P1–P3 (including the points you wrote), then save them together.</p>
+        <button id="generateCombined" type="button">Download combined PDF</button>
       </section>
 
       <section class="section control-grid human-check">
@@ -94,9 +97,8 @@ app.innerHTML = `
           <p class="section-title">Check your work</p>
         </div>
         <p class="template-note">
-          Tools aren’t perfect. It’s up to the human to make sure your work is correct.
-          We want everyone to do their best, so compare your output to the official reference
-          grading criteria below.
+          This tool only formats. The critical points are your thinking. Make sure they look right,
+          and compare with the official reference grading criteria below.
         </p>
         <a
           class="button-link"
@@ -1173,7 +1175,7 @@ const renderWorksheetCards = () => {
         </label>
 
         <div class="worksheet-actions">
-          <button class="generate-one" data-worksheet-id="${id}" type="button">Generate ${id.toUpperCase()}</button>
+          <button class="generate-one" data-worksheet-id="${id}" type="button">Download ${id.toUpperCase()} PDF</button>
         </div>
       </article>
     `,
@@ -1460,10 +1462,10 @@ updateWorksheetFilenamePreviews()
 setWorksheetEditorVisibility(false)
 
 const runAutofillFromFile = async (file) => {
-  setStatus('Reading headings from report...')
+  setStatus('Reading headers from report...')
   const filledSummary = await extractAndPopulateWorksheets(file)
   setWorksheetEditorVisibility(true)
-    setStatus(`Filled headings for:\n${filledSummary}`)
+  setStatus(`Headers filled for:\n${filledSummary}`)
 }
 
 extractButtonEl.addEventListener('click', async () => {
@@ -1496,6 +1498,7 @@ const downloadBlobFile = (blob, filename) => {
 loadSampleReportEl.addEventListener('click', async () => {
   try {
     loadSampleReportEl.disabled = true
+    loadSampleReportEl.classList.remove('tryout-cta-bounce')
     setStatus('Downloading practice ATI report…')
     const sampleUrl = new URL('sample-ati-report.pdf', document.baseURI).toString()
     const response = await fetch(sampleUrl)
@@ -1505,7 +1508,7 @@ loadSampleReportEl.addEventListener('click', async () => {
 
     const blob = await response.blob()
     downloadBlobFile(blob, 'practice-sample-ati-report.pdf')
-    setStatus('Practice ATI report downloaded. Choose that file below, then tap Autofill.')
+    setStatus('Practice report downloaded. Choose that file below, then tap Fill headers from report.')
     document.querySelector('.tool-start')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   } catch (error) {
     console.error(error)
@@ -1523,7 +1526,7 @@ sourceReportEl.addEventListener('change', () => {
     return
   }
 
-  setStatus(`Selected ${file.name}. Tap Autofill Headings From Report when you’re ready.`)
+  setStatus(`Selected ${file.name}. Tap Fill headers from report when you’re ready.`)
 })
 
 const isPdfFile = (file) => {
@@ -1542,7 +1545,7 @@ const assignReportFile = (file) => {
   const transfer = new DataTransfer()
   transfer.items.add(file)
   sourceReportEl.files = transfer.files
-  setStatus(`Selected ${file.name}. Tap Autofill Headings From Report when you’re ready.`)
+  setStatus(`Selected ${file.name}. Tap Fill headers from report when you’re ready.`)
 }
 
 ;['dragenter', 'dragover'].forEach((eventName) => {
@@ -1584,12 +1587,12 @@ sourceReportDropzoneEl.addEventListener('drop', (event) => {
 
 document.querySelector('#generateCombined').addEventListener('click', async () => {
   try {
-    setStatus('Generating combined PDF for p1, p2, p3...')
+    setStatus('Preparing combined PDF for P1, P2, and P3...')
     await downloadCombinedPdf()
-    setStatus('Generated combined worksheet PDF (3 pages).')
+    setStatus('Combined worksheet PDF ready (3 pages).')
   } catch (error) {
     console.error(error)
-    setStatus(`Could not generate combined PDF: ${formatError(error)}`, true)
+    setStatus(`Could not download combined PDF: ${formatError(error)}`, true)
   }
 })
 
@@ -1599,13 +1602,13 @@ for (const button of document.querySelectorAll('.generate-one')) {
     if (!worksheetId) return
 
     try {
-      setStatus(`Generating PDF for ${worksheetId.toUpperCase()}...`)
+      setStatus(`Preparing ${worksheetId.toUpperCase()} PDF...`)
       const values = getWorksheetValues(worksheetId)
       await downloadFilledPdf(values, worksheetId)
-      setStatus(`Generated worksheet PDF: ${worksheetId}.`)
+      setStatus(`${worksheetId.toUpperCase()} PDF ready.`)
     } catch (error) {
       console.error(error)
-      setStatus(`Could not generate ${worksheetId} PDF: ${formatError(error)}`, true)
+      setStatus(`Could not download ${worksheetId} PDF: ${formatError(error)}`, true)
     }
   })
 }

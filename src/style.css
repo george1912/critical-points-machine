@@ -209,6 +209,32 @@ body {
   margin-top: 4px;
 }
 
+.tryout-cta-bounce {
+  animation: tryout-bounce 1.6s ease-in-out infinite;
+}
+
+@keyframes tryout-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-7px);
+  }
+  55% {
+    transform: translateY(0);
+  }
+  70% {
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tryout-cta-bounce {
+    animation: none;
+  }
+}
+
 .text-link {
   color: var(--black);
   text-decoration: underline;
