@@ -805,6 +805,22 @@ button:disabled {
   opacity: 1;
 }
 
+.stg-play-reset {
+  min-height: 40px;
+  padding: 8px 18px;
+  border-color: var(--black);
+  background: var(--white);
+  color: var(--black);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.stg-play-reset:hover {
+  background: var(--black);
+  color: var(--white);
+  filter: none;
+}
+
 .stg-play-pad {
   display: none;
   grid-template-columns: repeat(3, 44px);

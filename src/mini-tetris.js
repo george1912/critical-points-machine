@@ -204,6 +204,21 @@ export const mountMiniTetris = ({
     ctx.fillRect(x * CELL, y * CELL, CELL - 1, CELL - 1)
   }
 
+  const drawGhostCell = (x, y, color) => {
+    const px = x * CELL
+    const py = y * CELL
+    ctx.strokeStyle = color
+    ctx.lineWidth = 1.5
+    ctx.strokeRect(px + 1.5, py + 1.5, CELL - 4, CELL - 4)
+  }
+
+  const ghostY = () => {
+    if (!piece) return null
+    let y = piece.y
+    while (!collides(piece.matrix, piece.x, y + 1)) y += 1
+    return y
+  }
+
   const draw = () => {
     ctx.fillStyle = '#fafafa'
     ctx.fillRect(0, 0, canvasEl.width, canvasEl.height)
@@ -216,11 +231,22 @@ export const mountMiniTetris = ({
       }
     }
 
-    if (piece) {
+    if (piece && !gameOver) {
+      const dropY = ghostY()
+      const color = COLORS[piece.type] || '#111'
+      if (dropY !== null && dropY !== piece.y) {
+        for (let r = 0; r < piece.matrix.length; r += 1) {
+          for (let c = 0; c < piece.matrix[r].length; c += 1) {
+            if (!piece.matrix[r][c]) continue
+            drawGhostCell(piece.x + c, dropY + r, color)
+          }
+        }
+      }
+
       for (let r = 0; r < piece.matrix.length; r += 1) {
         for (let c = 0; c < piece.matrix[r].length; c += 1) {
           if (!piece.matrix[r][c]) continue
-          drawCell(piece.x + c, piece.y + r, COLORS[piece.type] || '#111')
+          drawCell(piece.x + c, piece.y + r, color)
         }
       }
     }

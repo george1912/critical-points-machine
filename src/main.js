@@ -127,6 +127,7 @@ app.innerHTML = `
                 <div class="stg-play-meta">
                   <p class="stg-play-score">Score <span id="miniTetrisScore">0</span></p>
                   <button type="button" id="miniTetrisStart" class="stg-play-btn">Play</button>
+                  <button type="button" id="miniTetrisReset" class="stg-play-btn stg-play-reset">Reset</button>
                 </div>
                 <div class="stg-play-pad" aria-label="Touch controls">
                   <button type="button" class="stg-pad-btn" data-tetris="left" aria-label="Move left">←</button>
@@ -175,6 +176,7 @@ mountMiniTetris({
   canvasEl: document.querySelector('#miniTetris'),
   scoreEl: document.querySelector('#miniTetrisScore'),
   startBtnEl: document.querySelector('#miniTetrisStart'),
+  restartBtnEl: document.querySelector('#miniTetrisReset'),
   toggleEl: document.querySelector('#stgBreakToggle'),
 })
 
