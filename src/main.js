@@ -108,14 +108,18 @@ app.innerHTML = `
         >Download Official Reference Grading Criteria</a>
         <div class="stg-break">
           <button type="button" id="stgBreakToggle" class="stg-break-toggle" aria-expanded="false" aria-controls="stgPlay">
-            Take a break
+            Take a Break
           </button>
           <div id="stgPlay" class="stg-play is-collapsed" hidden>
-            <p class="stg-play-note">
-              Tiny Tetris. ← → move · Space rotate · ↓ soft drop · Enter hard drop.
-            </p>
+            <div class="stg-play-intro">
+              <p class="stg-play-kicker">Developed by STG</p>
+              <p class="stg-play-title">Tiny Tetris</p>
+              <p class="stg-play-note">
+                ← → move · Space rotate · ↓ soft drop · Enter hard drop.
+              </p>
+            </div>
             <div class="stg-play-board">
-              <canvas id="miniTetris" width="100" height="160" tabindex="0" aria-label="Mini Tetris"></canvas>
+              <canvas id="miniTetris" width="160" height="256" tabindex="0" aria-label="Mini Tetris"></canvas>
               <div class="stg-play-meta">
                 <p class="stg-play-score">Score <span id="miniTetrisScore">0</span></p>
                 <button type="button" id="miniTetrisStart" class="stg-play-btn">Play</button>

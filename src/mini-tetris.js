@@ -2,7 +2,7 @@
 
 const COLS = 10
 const ROWS = 16
-const CELL = 10
+const CELL = 16
 
 const SHAPES = {
   I: [[1, 1, 1, 1]],
@@ -229,9 +229,9 @@ export const mountMiniTetris = ({
       ctx.fillStyle = 'rgba(255,255,255,0.72)'
       ctx.fillRect(0, canvasEl.height / 2 - 14, canvasEl.width, 28)
       ctx.fillStyle = '#111'
-      ctx.font = '10px ui-monospace, Menlo, monospace'
+      ctx.font = '14px ui-monospace, Menlo, monospace'
       ctx.textAlign = 'center'
-      ctx.fillText('nice break', canvasEl.width / 2, canvasEl.height / 2 + 3)
+      ctx.fillText('nice break', canvasEl.width / 2, canvasEl.height / 2 + 4)
     }
   }
 
@@ -293,7 +293,7 @@ export const mountMiniTetris = ({
     rootEl.hidden = !open
     if (toggleEl) {
       toggleEl.setAttribute('aria-expanded', open ? 'true' : 'false')
-      toggleEl.textContent = open ? 'Close break' : 'Take a break'
+      toggleEl.textContent = open ? 'Get Back to Work' : 'Take a Break'
     }
     if (!open) {
       running = false
