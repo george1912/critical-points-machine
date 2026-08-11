@@ -2,6 +2,7 @@ import './style.css'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf'
 import pdfjsWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.js?url'
+import { mountMiniTetris } from './mini-tetris.js'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
 
@@ -116,6 +117,23 @@ app.innerHTML = `
         <p>The more information you share, the easier it is to fix. 😊</p>
       </section>
 
+      <section id="stgPlay" class="stg-play is-hidden" hidden>
+        <div class="stg-play-intro">
+          <p class="stg-play-kicker">Developed by STG</p>
+          <p class="stg-play-title">Headers done. Tiny break?</p>
+          <p class="stg-play-note">
+            A little Tetris while you catch your breath. ← → move · Space rotate · ↓ soft drop · Enter hard drop.
+          </p>
+        </div>
+        <div class="stg-play-board">
+          <canvas id="miniTetris" width="100" height="160" tabindex="0" aria-label="Mini Tetris"></canvas>
+          <div class="stg-play-meta">
+            <p class="stg-play-score">Score <span id="miniTetrisScore">0</span></p>
+            <button type="button" id="miniTetrisStart" class="stg-play-btn">Play</button>
+          </div>
+        </div>
+      </section>
+
       <footer class="dev-credit">
         <div class="dev-credit-copy">
           <p class="dev-credit-label">Developed by STG.</p>
@@ -136,6 +154,13 @@ const worksheetCardsEl = document.querySelector('#worksheetCards')
 const worksheetHintCardEl = document.querySelector('#worksheetHintCard')
 const generateCombinedButtonEl = document.querySelector('#generateCombined')
 
+const miniTetris = mountMiniTetris({
+  rootEl: document.querySelector('#stgPlay'),
+  canvasEl: document.querySelector('#miniTetris'),
+  scoreEl: document.querySelector('#miniTetrisScore'),
+  startBtnEl: document.querySelector('#miniTetrisStart'),
+})
+
 // Hard-force one card per row (guards against stale Safari stylesheet caching).
 worksheetCardsEl.style.gridTemplateColumns = '1fr'
 
@@ -148,6 +173,8 @@ const setWorksheetEditorVisibility = (isVisible) => {
   worksheetCardsEl.classList.toggle('is-hidden', !isVisible)
   worksheetHintCardEl.classList.toggle('is-hidden', isVisible)
   generateCombinedButtonEl.disabled = !isVisible
+  if (isVisible) miniTetris.reveal()
+  else miniTetris.hide()
 }
 
 let extractedExamName = ''
