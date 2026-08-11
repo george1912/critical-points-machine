@@ -266,7 +266,7 @@ export const mountMiniTetris = ({
   const onKey = (event) => {
     if (!open) return
     if (isTypingTarget(document.activeElement)) return
-    if (!running && event.key !== 'Enter') return
+    if (!running && event.key !== 'Enter' && event.key !== 'ArrowUp') return
 
     const key = event.key
     if (
@@ -280,11 +280,29 @@ export const mountMiniTetris = ({
       event.preventDefault()
     }
 
+    if (!running) {
+      if (key === 'Enter' || key === 'ArrowUp') start()
+      return
+    }
+
     if (key === 'ArrowLeft') move(-1, 0)
     else if (key === 'ArrowRight') move(1, 0)
     else if (key === 'ArrowDown') move(0, 1)
-    else if (key === 'ArrowUp' || key === ' ') rotate()
-    else if (key === 'Enter') hardDrop()
+    else if (key === ' ') rotate()
+    else if (key === 'ArrowUp' || key === 'Enter') hardDrop()
+  }
+
+  const onPadAction = (action) => {
+    if (!open) return
+    if (!running) {
+      if (action === 'hard' || action === 'rotate') start()
+      return
+    }
+    if (action === 'left') move(-1, 0)
+    else if (action === 'right') move(1, 0)
+    else if (action === 'soft') move(0, 1)
+    else if (action === 'rotate') rotate()
+    else if (action === 'hard') hardDrop()
   }
 
   const setOpen = (nextOpen) => {
@@ -307,6 +325,14 @@ export const mountMiniTetris = ({
   canvasEl.addEventListener('click', () => {
     if (!running || gameOver) start()
     else canvasEl.focus({ preventScroll: true })
+  })
+  rootEl.querySelectorAll('[data-tetris]').forEach((btn) => {
+    btn.addEventListener('pointerdown', (event) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return
+      event.preventDefault()
+      onPadAction(btn.getAttribute('data-tetris'))
+    })
+    btn.addEventListener('click', (event) => event.preventDefault())
   })
   window.addEventListener('keydown', onKey)
 

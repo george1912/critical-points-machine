@@ -114,15 +114,27 @@ app.innerHTML = `
             <div class="stg-play-intro">
               <p class="stg-play-kicker">Developed by STG</p>
               <p class="stg-play-title">Tiny Tetris</p>
-              <p class="stg-play-note">
-                ← → move · Space rotate · ↓ soft drop · Enter hard drop.
+              <p class="stg-play-note stg-play-note-desktop">
+                ← → move · Space rotate · ↓ soft drop · ↑ hard drop.
+              </p>
+              <p class="stg-play-note stg-play-note-touch">
+                Use the pad on the right — or tap Play and go.
               </p>
             </div>
             <div class="stg-play-board">
               <canvas id="miniTetris" width="160" height="256" tabindex="0" aria-label="Mini Tetris"></canvas>
-              <div class="stg-play-meta">
-                <p class="stg-play-score">Score <span id="miniTetrisScore">0</span></p>
-                <button type="button" id="miniTetrisStart" class="stg-play-btn">Play</button>
+              <div class="stg-play-side">
+                <div class="stg-play-meta">
+                  <p class="stg-play-score">Score <span id="miniTetrisScore">0</span></p>
+                  <button type="button" id="miniTetrisStart" class="stg-play-btn">Play</button>
+                </div>
+                <div class="stg-play-pad" aria-label="Touch controls">
+                  <button type="button" class="stg-pad-btn" data-tetris="left" aria-label="Move left">←</button>
+                  <button type="button" class="stg-pad-btn" data-tetris="rotate" aria-label="Rotate">↻</button>
+                  <button type="button" class="stg-pad-btn" data-tetris="right" aria-label="Move right">→</button>
+                  <button type="button" class="stg-pad-btn" data-tetris="soft" aria-label="Soft drop">↓</button>
+                  <button type="button" class="stg-pad-btn stg-pad-drop" data-tetris="hard" aria-label="Hard drop">Drop</button>
+                </div>
               </div>
             </div>
           </div>

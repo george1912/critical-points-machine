@@ -738,11 +738,14 @@ button:disabled {
   line-height: 1.45;
 }
 
+.stg-play-note-touch {
+  display: none;
+}
+
 .stg-play-board {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
+  align-items: flex-start;
+  gap: 20px;
   width: 100%;
 }
 
@@ -755,6 +758,7 @@ button:disabled {
   background: #fafafa;
   image-rendering: pixelated;
   outline: none;
+  touch-action: none;
 }
 
 #miniTetris:focus {
@@ -762,12 +766,19 @@ button:disabled {
   border-color: var(--pop);
 }
 
+.stg-play-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 16px;
+  min-width: 7.5rem;
+  padding-top: 2px;
+}
+
 .stg-play-meta {
   display: grid;
-  gap: 12px;
-  align-content: end;
+  gap: 10px;
   justify-items: end;
-  margin-left: auto;
 }
 
 .stg-play-score {
@@ -778,6 +789,95 @@ button:disabled {
 }
 
 .stg-play-btn {
-  padding: 10px 18px;
-  font-size: 14px;
+  min-height: 48px;
+  padding: 12px 22px;
+  border: 1px solid var(--pop);
+  border-radius: var(--radius-pill);
+  background: var(--pop);
+  color: var(--black);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.stg-play-btn:hover {
+  filter: brightness(0.96);
+  opacity: 1;
+}
+
+.stg-play-pad {
+  display: none;
+  grid-template-columns: repeat(3, 44px);
+  gap: 8px;
+  justify-content: end;
+  touch-action: manipulation;
+}
+
+.stg-pad-btn {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid var(--gray-1);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--black);
+  font-size: 16px;
+  line-height: 1;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.stg-pad-btn:active {
+  background: var(--pop-soft);
+  border-color: var(--pop);
+  transform: none;
+}
+
+.stg-pad-drop {
+  grid-column: 2;
+  width: 44px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 720px), (pointer: coarse) {
+  .stg-play-note-desktop {
+    display: none;
+  }
+
+  .stg-play-note-touch {
+    display: block;
+  }
+
+  .stg-play-pad {
+    display: grid;
+  }
+
+  .stg-play {
+    width: min(100%, 22rem);
+  }
+}
+
+@media (max-width: 420px) {
+  .stg-play-board {
+    flex-wrap: wrap;
+  }
+
+  .stg-play-side {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+  }
+
+  .stg-play-meta {
+    justify-items: start;
+  }
+
+  .stg-play-pad {
+    justify-content: start;
+  }
 }
