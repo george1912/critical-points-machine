@@ -660,35 +660,41 @@ button:disabled {
   font-style: italic;
 }
 
-.stg-play {
+.stg-break {
   display: grid;
-  gap: 14px;
-  margin-top: 8px;
-  padding: 18px 0 6px;
-  border-top: 1px solid var(--gray-1);
+  gap: 10px;
+  margin-top: 4px;
+  justify-items: start;
 }
 
-.stg-play.is-hidden {
+.stg-break-toggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--gray-soft);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.stg-break-toggle:hover {
+  color: var(--black);
+}
+
+.stg-play {
+  display: grid;
+  gap: 12px;
+  padding: 12px 0 2px;
+}
+
+.stg-play.is-collapsed {
   display: none;
 }
 
-.stg-play-kicker {
-  margin: 0;
-  color: var(--gray-soft);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.stg-play-title {
-  margin: 4px 0 0;
-  color: var(--black);
-  font-size: 18px;
-  letter-spacing: -0.02em;
-}
-
 .stg-play-note {
-  margin: 6px 0 0;
+  margin: 0;
   max-width: 28rem;
   color: var(--gray-3);
   font-size: 13px;

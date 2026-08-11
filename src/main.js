@@ -106,6 +106,23 @@ app.innerHTML = `
           href="./exemplar-3-critical-points.pdf"
           download="exemplar-3-critical-points.pdf"
         >Download Official Reference Grading Criteria</a>
+        <div class="stg-break">
+          <button type="button" id="stgBreakToggle" class="stg-break-toggle" aria-expanded="false" aria-controls="stgPlay">
+            Take a break
+          </button>
+          <div id="stgPlay" class="stg-play is-collapsed" hidden>
+            <p class="stg-play-note">
+              Tiny Tetris. ← → move · Space rotate · ↓ soft drop · Enter hard drop.
+            </p>
+            <div class="stg-play-board">
+              <canvas id="miniTetris" width="100" height="160" tabindex="0" aria-label="Mini Tetris"></canvas>
+              <div class="stg-play-meta">
+                <p class="stg-play-score">Score <span id="miniTetrisScore">0</span></p>
+                <button type="button" id="miniTetrisStart" class="stg-play-btn">Play</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="contact-note">
@@ -115,23 +132,6 @@ app.innerHTML = `
         </p>
         <p>Attach a screenshot and a sample file if you can.</p>
         <p>The more information you share, the easier it is to fix. 😊</p>
-      </section>
-
-      <section id="stgPlay" class="stg-play is-hidden" hidden>
-        <div class="stg-play-intro">
-          <p class="stg-play-kicker">Developed by STG</p>
-          <p class="stg-play-title">Headers done. Tiny break?</p>
-          <p class="stg-play-note">
-            A little Tetris while you catch your breath. ← → move · Space rotate · ↓ soft drop · Enter hard drop.
-          </p>
-        </div>
-        <div class="stg-play-board">
-          <canvas id="miniTetris" width="100" height="160" tabindex="0" aria-label="Mini Tetris"></canvas>
-          <div class="stg-play-meta">
-            <p class="stg-play-score">Score <span id="miniTetrisScore">0</span></p>
-            <button type="button" id="miniTetrisStart" class="stg-play-btn">Play</button>
-          </div>
-        </div>
       </section>
 
       <footer class="dev-credit">
@@ -154,11 +154,12 @@ const worksheetCardsEl = document.querySelector('#worksheetCards')
 const worksheetHintCardEl = document.querySelector('#worksheetHintCard')
 const generateCombinedButtonEl = document.querySelector('#generateCombined')
 
-const miniTetris = mountMiniTetris({
+mountMiniTetris({
   rootEl: document.querySelector('#stgPlay'),
   canvasEl: document.querySelector('#miniTetris'),
   scoreEl: document.querySelector('#miniTetrisScore'),
   startBtnEl: document.querySelector('#miniTetrisStart'),
+  toggleEl: document.querySelector('#stgBreakToggle'),
 })
 
 // Hard-force one card per row (guards against stale Safari stylesheet caching).
@@ -173,8 +174,6 @@ const setWorksheetEditorVisibility = (isVisible) => {
   worksheetCardsEl.classList.toggle('is-hidden', !isVisible)
   worksheetHintCardEl.classList.toggle('is-hidden', isVisible)
   generateCombinedButtonEl.disabled = !isVisible
-  if (isVisible) miniTetris.reveal()
-  else miniTetris.hide()
 }
 
 let extractedExamName = ''

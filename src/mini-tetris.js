@@ -68,8 +68,11 @@ export const mountMiniTetris = ({
   scoreEl,
   startBtnEl,
   restartBtnEl,
+  toggleEl,
 }) => {
-  if (!rootEl || !canvasEl) return { reveal() {}, hide() {} }
+  if (!rootEl || !canvasEl) return { open() {}, close() {}, destroy() {} }
+
+  let open = false
 
   const ctx = canvasEl.getContext('2d')
   canvasEl.width = COLS * CELL
@@ -261,7 +264,7 @@ export const mountMiniTetris = ({
   }
 
   const onKey = (event) => {
-    if (rootEl.classList.contains('is-hidden')) return
+    if (!open) return
     if (isTypingTarget(document.activeElement)) return
     if (!running && event.key !== 'Enter') return
 
@@ -284,8 +287,23 @@ export const mountMiniTetris = ({
     else if (key === 'Enter') hardDrop()
   }
 
+  const setOpen = (nextOpen) => {
+    open = nextOpen
+    rootEl.classList.toggle('is-collapsed', !open)
+    rootEl.hidden = !open
+    if (toggleEl) {
+      toggleEl.setAttribute('aria-expanded', open ? 'true' : 'false')
+      toggleEl.textContent = open ? 'Close break' : 'Take a break'
+    }
+    if (!open) {
+      running = false
+      if (startBtnEl) startBtnEl.textContent = 'Play'
+    }
+  }
+
   startBtnEl?.addEventListener('click', toggle)
   restartBtnEl?.addEventListener('click', start)
+  toggleEl?.addEventListener('click', () => setOpen(!open))
   canvasEl.addEventListener('click', () => {
     if (!running || gameOver) start()
     else canvasEl.focus({ preventScroll: true })
@@ -296,15 +314,11 @@ export const mountMiniTetris = ({
   draw()
 
   return {
-    reveal() {
-      rootEl.classList.remove('is-hidden')
-      rootEl.hidden = false
+    open() {
+      setOpen(true)
     },
-    hide() {
-      rootEl.classList.add('is-hidden')
-      rootEl.hidden = true
-      running = false
-      if (startBtnEl) startBtnEl.textContent = 'Play'
+    close() {
+      setOpen(false)
     },
     destroy() {
       cancelAnimationFrame(rafId)
