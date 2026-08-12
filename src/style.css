@@ -798,27 +798,56 @@ button:disabled {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.02em;
+  box-shadow: none;
+  transform: none;
 }
 
-.stg-play-btn:hover {
-  filter: brightness(0.96);
+.stg-play-btn:hover,
+.stg-play-btn:focus,
+.stg-play-btn:focus-visible,
+.stg-play-btn:active {
+  background: var(--pop);
+  color: var(--black);
+  border-color: var(--pop);
+  box-shadow: none;
+  transform: none;
+  filter: none;
   opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .stg-play-btn:hover {
+    filter: brightness(0.96);
+  }
 }
 
 .stg-play-reset {
   min-height: 40px;
   padding: 8px 18px;
-  border-color: var(--black);
+  border: 1px solid var(--black);
   background: var(--white);
   color: var(--black);
   font-size: 14px;
   font-weight: 500;
 }
 
-.stg-play-reset:hover {
-  background: var(--black);
-  color: var(--white);
+.stg-play-reset:hover,
+.stg-play-reset:focus,
+.stg-play-reset:focus-visible,
+.stg-play-reset:active {
+  background: var(--white);
+  color: var(--black);
+  border-color: var(--black);
+  box-shadow: none;
+  transform: none;
   filter: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .stg-play-reset:hover {
+    background: var(--black);
+    color: var(--white);
+  }
 }
 
 .stg-play-pad {
@@ -840,14 +869,26 @@ button:disabled {
   color: var(--black);
   font-size: 16px;
   line-height: 1;
+  box-shadow: none;
+  transform: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.stg-pad-btn:hover,
+.stg-pad-btn:focus,
+.stg-pad-btn:focus-visible,
+.stg-pad-btn:active {
+  background: var(--white);
+  color: var(--black);
+  border-color: var(--gray-1);
+  box-shadow: none;
+  transform: none;
 }
 
 .stg-pad-btn:active {
   background: var(--pop-soft);
   border-color: var(--pop);
-  transform: none;
 }
 
 .stg-pad-drop {

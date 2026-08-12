@@ -207,9 +207,14 @@ export const mountMiniTetris = ({
   const drawGhostCell = (x, y, color) => {
     const px = x * CELL
     const py = y * CELL
+    const size = CELL - 1
+    ctx.fillStyle = color
+    ctx.globalAlpha = 0.18
+    ctx.fillRect(px, py, size, size)
+    ctx.globalAlpha = 1
     ctx.strokeStyle = color
     ctx.lineWidth = 1.5
-    ctx.strokeRect(px + 1.5, py + 1.5, CELL - 4, CELL - 4)
+    ctx.strokeRect(px + 1, py + 1, size - 2, size - 2)
   }
 
   const ghostY = () => {
