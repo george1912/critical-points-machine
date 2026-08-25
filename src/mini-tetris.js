@@ -73,6 +73,7 @@ const makeNonce = () => {
 export const mountMiniTetris = ({
   rootEl,
   canvasEl,
+  holdCanvasEl,
   scoreEl,
   startBtnEl,
   restartBtnEl,
@@ -87,9 +88,17 @@ export const mountMiniTetris = ({
   const ctx = canvasEl.getContext('2d')
   canvasEl.width = COLS * CELL
   canvasEl.height = ROWS * CELL
+  const holdCtx = holdCanvasEl?.getContext('2d') || null
+  const HOLD_CELL = 10
+  if (holdCanvasEl) {
+    holdCanvasEl.width = 48
+    holdCanvasEl.height = 48
+  }
 
   let board = Array.from({ length: ROWS }, () => Array(COLS).fill(null))
   let piece = null
+  let holdType = null
+  let canHold = true
   let score = 0
   let running = false
   let gameOver = false
@@ -104,15 +113,40 @@ export const mountMiniTetris = ({
   let runNonce = ''
   let submittedNonce = ''
 
-  const randomPiece = () => {
-    const keys = Object.keys(SHAPES)
-    const type = keys[Math.floor(Math.random() * keys.length)]
+  const makePiece = (type) => {
     const matrix = cloneMatrix(SHAPES[type])
     return {
       type,
       matrix,
       x: Math.floor((COLS - matrix[0].length) / 2),
       y: 0,
+    }
+  }
+
+  const randomPiece = () => {
+    const keys = Object.keys(SHAPES)
+    return makePiece(keys[Math.floor(Math.random() * keys.length)])
+  }
+
+  const drawHold = () => {
+    if (!holdCtx || !holdCanvasEl) return
+    holdCtx.fillStyle = '#fafafa'
+    holdCtx.fillRect(0, 0, holdCanvasEl.width, holdCanvasEl.height)
+    holdCtx.strokeStyle = '#ececec'
+    holdCtx.strokeRect(0.5, 0.5, holdCanvasEl.width - 1, holdCanvasEl.height - 1)
+    if (!holdType) return
+    const matrix = SHAPES[holdType]
+    const color = COLORS[holdType] || '#111'
+    const w = matrix[0].length * HOLD_CELL
+    const h = matrix.length * HOLD_CELL
+    const ox = Math.floor((holdCanvasEl.width - w) / 2)
+    const oy = Math.floor((holdCanvasEl.height - h) / 2)
+    for (let r = 0; r < matrix.length; r += 1) {
+      for (let c = 0; c < matrix[r].length; c += 1) {
+        if (!matrix[r][c]) continue
+        holdCtx.fillStyle = color
+        holdCtx.fillRect(ox + c * HOLD_CELL, oy + r * HOLD_CELL, HOLD_CELL - 1, HOLD_CELL - 1)
+      }
     }
   }
 
@@ -185,8 +219,9 @@ export const mountMiniTetris = ({
     onGameOver?.(ticket)
   }
 
-  const spawn = () => {
-    piece = randomPiece()
+  const spawn = (nextType, { fromHold = false } = {}) => {
+    piece = nextType ? makePiece(nextType) : randomPiece()
+    if (!fromHold) canHold = true
     if (collides(piece.matrix, piece.x, piece.y)) {
       running = false
       gameOver = true
@@ -206,9 +241,27 @@ export const mountMiniTetris = ({
     clearPoints = 0
     activeMs = 0
     activeStartedAt = 0
+    holdType = null
+    canHold = true
     runNonce = makeNonce()
     if (scoreEl) scoreEl.textContent = '0'
     spawn()
+    drawHold()
+  }
+
+  const holdPiece = () => {
+    if (!piece || !running || !canHold || gameOver) return
+    const current = piece.type
+    if (holdType) {
+      const swap = holdType
+      holdType = current
+      spawn(swap, { fromHold: true })
+    } else {
+      holdType = current
+      spawn(undefined, { fromHold: true })
+    }
+    canHold = false
+    drawHold()
   }
 
   const move = (dx, dy) => {
@@ -325,6 +378,7 @@ export const mountMiniTetris = ({
       lastDrop = time
     }
     draw()
+    drawHold()
     rafId = requestAnimationFrame(loop)
   }
 
@@ -363,7 +417,9 @@ export const mountMiniTetris = ({
       key === 'ArrowDown' ||
       key === 'ArrowUp' ||
       key === ' ' ||
-      key === 'Enter'
+      key === 'Enter' ||
+      key === 'c' ||
+      key === 'C'
     ) {
       event.preventDefault()
     }
@@ -378,12 +434,13 @@ export const mountMiniTetris = ({
     else if (key === 'ArrowDown') move(0, 1)
     else if (key === ' ') rotate()
     else if (key === 'ArrowUp' || key === 'Enter') hardDrop()
+    else if (key === 'c' || key === 'C') holdPiece()
   }
 
   const onPadAction = (action) => {
     if (!open) return
     if (!running) {
-      if (action === 'hard' || action === 'rotate') start()
+      if (action === 'hard' || action === 'rotate' || action === 'hold') start()
       return
     }
     if (action === 'left') move(-1, 0)
@@ -391,6 +448,7 @@ export const mountMiniTetris = ({
     else if (action === 'soft') move(0, 1)
     else if (action === 'rotate') rotate()
     else if (action === 'hard') hardDrop()
+    else if (action === 'hold') holdPiece()
   }
 
   const setOpen = (nextOpen) => {
@@ -426,6 +484,7 @@ export const mountMiniTetris = ({
 
   rafId = requestAnimationFrame(loop)
   draw()
+  drawHold()
 
   return {
     open() {

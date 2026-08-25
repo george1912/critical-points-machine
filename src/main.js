@@ -120,26 +120,26 @@ app.innerHTML = `
               </span>
             </span>
             <span class="stg-break-copy">
-              <span class="stg-break-kicker">STG break room</span>
-              <span id="stgBreakToggleLabel" class="stg-break-label">Take a Break — Tiny Tetris</span>
+              <span class="stg-break-kicker">Break room</span>
+              <span id="stgBreakToggleLabel" class="stg-break-label">Take a Break</span>
             </span>
           </button>
           <div id="stgPlay" class="stg-play is-collapsed" hidden>
-            <div class="stg-play-intro">
-              <p class="stg-play-kicker">Developed by STG</p>
-              <p class="stg-play-title">Tiny Tetris</p>
-              <p class="stg-play-note stg-play-note-desktop">
-                ← → move · Space rotate · ↓ soft drop · ↑ hard drop.
-              </p>
-              <p class="stg-play-note stg-play-note-touch">
-                Use the pad on the right — or tap Play and go.
-              </p>
-            </div>
+            <p class="stg-play-note stg-play-note-desktop">
+              ← → move · Space rotate · ↓ soft · ↑ drop · C hold
+            </p>
+            <p class="stg-play-note stg-play-note-touch">
+              Pad on the right · Hold swaps the piece
+            </p>
             <div class="stg-play-board">
-              <canvas id="miniTetris" width="160" height="256" tabindex="0" aria-label="Mini Tetris"></canvas>
+              <canvas id="miniTetris" width="160" height="256" tabindex="0" aria-label="Break room Tetris"></canvas>
               <div class="stg-play-side">
                 <div class="stg-play-meta">
                   <p class="stg-play-score">Score <span id="miniTetrisScore">0</span></p>
+                  <div class="stg-hold">
+                    <span class="stg-hold-label">Hold</span>
+                    <canvas id="miniTetrisHold" width="48" height="48" aria-label="Held piece"></canvas>
+                  </div>
                   <button type="button" id="miniTetrisStart" class="stg-play-btn">Play</button>
                   <button type="button" id="miniTetrisReset" class="stg-play-btn stg-play-reset">Reset</button>
                 </div>
@@ -147,21 +147,19 @@ app.innerHTML = `
                   <button type="button" class="stg-pad-btn" data-tetris="left" aria-label="Move left">←</button>
                   <button type="button" class="stg-pad-btn" data-tetris="rotate" aria-label="Rotate">↻</button>
                   <button type="button" class="stg-pad-btn" data-tetris="right" aria-label="Move right">→</button>
+                  <button type="button" class="stg-pad-btn" data-tetris="hold" aria-label="Hold">H</button>
                   <button type="button" class="stg-pad-btn" data-tetris="soft" aria-label="Soft drop">↓</button>
-                  <button type="button" class="stg-pad-btn stg-pad-drop" data-tetris="hard" aria-label="Hard drop">Drop</button>
+                  <button type="button" class="stg-pad-btn" data-tetris="hard" aria-label="Hard drop">⇓</button>
                 </div>
               </div>
             </div>
             <div class="stg-board">
-              <div class="stg-board-head">
-                <p class="stg-board-title">Break-room leaderboard</p>
-                <p class="stg-board-note">Top 10 on this device. Clean names only — cheaty scores get tossed.</p>
-              </div>
+              <p class="stg-board-title">Leaderboard</p>
               <ol id="miniTetrisBoard" class="stg-board-list"></ol>
               <p id="miniTetrisBoardStatus" class="stg-board-status" role="status"></p>
               <form id="miniTetrisScoreForm" class="stg-board-form is-hidden" hidden>
                 <label class="stg-board-label" for="miniTetrisName">
-                  Nice run (<span id="miniTetrisPendingScore">0</span>). Initials / nickname:
+                  Score <span id="miniTetrisPendingScore">0</span> — nickname
                 </label>
                 <div class="stg-board-row">
                   <input
@@ -170,9 +168,9 @@ app.innerHTML = `
                     type="text"
                     maxlength="12"
                     autocomplete="nickname"
-                    placeholder="e.g. Maya"
+                    placeholder="Maya"
                   />
-                  <button type="submit" class="stg-play-btn">Save score</button>
+                  <button type="submit" class="stg-play-btn">Save</button>
                 </div>
               </form>
             </div>
@@ -221,9 +219,7 @@ let pendingTetrisTicket = null
 
 const setBreakToggleLabel = (isOpen) => {
   if (stgBreakToggleLabelEl) {
-    stgBreakToggleLabelEl.textContent = isOpen
-      ? 'Get Back to Work'
-      : 'Take a Break — Tiny Tetris'
+    stgBreakToggleLabelEl.textContent = isOpen ? 'Get Back to Work' : 'Take a Break'
   }
 }
 
@@ -252,6 +248,7 @@ renderLeaderboard(miniTetrisBoardEl)
 const miniTetris = mountMiniTetris({
   rootEl: document.querySelector('#stgPlay'),
   canvasEl: document.querySelector('#miniTetris'),
+  holdCanvasEl: document.querySelector('#miniTetrisHold'),
   scoreEl: document.querySelector('#miniTetrisScore'),
   startBtnEl: document.querySelector('#miniTetrisStart'),
   restartBtnEl: document.querySelector('#miniTetrisReset'),
