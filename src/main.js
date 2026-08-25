@@ -3,6 +3,11 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf'
 import pdfjsWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.js?url'
 import { mountMiniTetris } from './mini-tetris.js'
+import {
+  qualifiesForBoard,
+  renderLeaderboard,
+  submitScore,
+} from './tetris-leaderboard.js'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
 
@@ -108,7 +113,16 @@ app.innerHTML = `
         >Download Official Reference Grading Criteria</a>
         <div class="stg-break">
           <button type="button" id="stgBreakToggle" class="stg-break-toggle" aria-expanded="false" aria-controls="stgPlay">
-            Take a Break
+            <span class="stg-break-hint" aria-hidden="true">
+              <img class="stg-break-hint-img" src="./tetris-hint.png" alt="" width="40" height="40" />
+              <span class="stg-break-hint-gif">
+                <span></span><span></span><span></span><span></span>
+              </span>
+            </span>
+            <span class="stg-break-copy">
+              <span class="stg-break-kicker">STG break room</span>
+              <span id="stgBreakToggleLabel" class="stg-break-label">Take a Break — Tiny Tetris</span>
+            </span>
           </button>
           <div id="stgPlay" class="stg-play is-collapsed" hidden>
             <div class="stg-play-intro">
@@ -137,6 +151,30 @@ app.innerHTML = `
                   <button type="button" class="stg-pad-btn stg-pad-drop" data-tetris="hard" aria-label="Hard drop">Drop</button>
                 </div>
               </div>
+            </div>
+            <div class="stg-board">
+              <div class="stg-board-head">
+                <p class="stg-board-title">Break-room leaderboard</p>
+                <p class="stg-board-note">Top 10 on this device. Clean names only — cheaty scores get tossed.</p>
+              </div>
+              <ol id="miniTetrisBoard" class="stg-board-list"></ol>
+              <p id="miniTetrisBoardStatus" class="stg-board-status" role="status"></p>
+              <form id="miniTetrisScoreForm" class="stg-board-form is-hidden" hidden>
+                <label class="stg-board-label" for="miniTetrisName">
+                  Nice run (<span id="miniTetrisPendingScore">0</span>). Initials / nickname:
+                </label>
+                <div class="stg-board-row">
+                  <input
+                    id="miniTetrisName"
+                    name="tetrisName"
+                    type="text"
+                    maxlength="12"
+                    autocomplete="nickname"
+                    placeholder="e.g. Maya"
+                  />
+                  <button type="submit" class="stg-play-btn">Save score</button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -171,13 +209,97 @@ const worksheetCardsEl = document.querySelector('#worksheetCards')
 const worksheetHintCardEl = document.querySelector('#worksheetHintCard')
 const generateCombinedButtonEl = document.querySelector('#generateCombined')
 
-mountMiniTetris({
+const stgBreakToggleEl = document.querySelector('#stgBreakToggle')
+const stgBreakToggleLabelEl = document.querySelector('#stgBreakToggleLabel')
+const miniTetrisBoardEl = document.querySelector('#miniTetrisBoard')
+const miniTetrisScoreFormEl = document.querySelector('#miniTetrisScoreForm')
+const miniTetrisNameEl = document.querySelector('#miniTetrisName')
+const miniTetrisPendingScoreEl = document.querySelector('#miniTetrisPendingScore')
+const miniTetrisBoardStatusEl = document.querySelector('#miniTetrisBoardStatus')
+
+let pendingTetrisTicket = null
+
+const setBreakToggleLabel = (isOpen) => {
+  if (stgBreakToggleLabelEl) {
+    stgBreakToggleLabelEl.textContent = isOpen
+      ? 'Get Back to Work'
+      : 'Take a Break — Tiny Tetris'
+  }
+}
+
+const hideScoreForm = () => {
+  pendingTetrisTicket = null
+  miniTetrisScoreFormEl?.classList.add('is-hidden')
+  if (miniTetrisScoreFormEl) miniTetrisScoreFormEl.hidden = true
+  if (miniTetrisBoardStatusEl) miniTetrisBoardStatusEl.textContent = ''
+}
+
+const showScoreForm = (ticket) => {
+  pendingTetrisTicket = ticket
+  if (miniTetrisPendingScoreEl) miniTetrisPendingScoreEl.textContent = String(ticket.score)
+  miniTetrisScoreFormEl?.classList.remove('is-hidden')
+  if (miniTetrisScoreFormEl) miniTetrisScoreFormEl.hidden = false
+  if (miniTetrisBoardStatusEl) {
+    miniTetrisBoardStatusEl.textContent = qualifiesForBoard(ticket.score)
+      ? 'Looks board-worthy.'
+      : 'Save it anyway if you want a clean personal mark — only top 10 stick.'
+  }
+  miniTetrisNameEl?.focus({ preventScroll: true })
+}
+
+renderLeaderboard(miniTetrisBoardEl)
+
+const miniTetris = mountMiniTetris({
   rootEl: document.querySelector('#stgPlay'),
   canvasEl: document.querySelector('#miniTetris'),
   scoreEl: document.querySelector('#miniTetrisScore'),
   startBtnEl: document.querySelector('#miniTetrisStart'),
   restartBtnEl: document.querySelector('#miniTetrisReset'),
-  toggleEl: document.querySelector('#stgBreakToggle'),
+  toggleEl: stgBreakToggleEl,
+  onGameOver: (ticket) => {
+    if (!qualifiesForBoard(ticket.score)) {
+      hideScoreForm()
+      if (miniTetrisBoardStatusEl) {
+        miniTetrisBoardStatusEl.textContent =
+          ticket.score < 10
+            ? 'Clear a few lines to post a score.'
+            : `Score ${ticket.score} — not quite top 10 yet.`
+      }
+      return
+    }
+    showScoreForm(ticket)
+  },
+  onRunStart: () => {
+    hideScoreForm()
+  },
+})
+
+stgBreakToggleEl?.addEventListener('click', () => {
+  // Runs after mini-tetris toggles aria-expanded.
+  queueMicrotask(() => {
+    const isOpen = stgBreakToggleEl.getAttribute('aria-expanded') === 'true'
+    setBreakToggleLabel(isOpen)
+    if (!isOpen) hideScoreForm()
+  })
+})
+
+miniTetrisScoreFormEl?.addEventListener('submit', (event) => {
+  event.preventDefault()
+  if (!pendingTetrisTicket) return
+  const result = submitScore(miniTetrisNameEl?.value || '', pendingTetrisTicket)
+  if (!result.ok) {
+    if (miniTetrisBoardStatusEl) miniTetrisBoardStatusEl.textContent = result.error
+    return
+  }
+  miniTetris.markSubmitted?.(pendingTetrisTicket.nonce)
+  renderLeaderboard(miniTetrisBoardEl)
+  if (miniTetrisBoardStatusEl) {
+    miniTetrisBoardStatusEl.textContent = `Saved — you’re #${result.rank}.`
+  }
+  pendingTetrisTicket = null
+  miniTetrisScoreFormEl.classList.add('is-hidden')
+  miniTetrisScoreFormEl.hidden = true
+  if (miniTetrisNameEl) miniTetrisNameEl.value = ''
 })
 
 // Hard-force one card per row (guards against stale Safari stylesheet caching).

@@ -1,5 +1,7 @@
 /** Tiny Tetris Easter egg — only runs when started, ignores keys while typing in form fields. */
 
+import { sealPlayTicket } from './tetris-leaderboard.js'
+
 const COLS = 10
 const ROWS = 16
 const CELL = 16
@@ -62,6 +64,12 @@ const isTypingTarget = (el) => {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
 }
 
+const makeNonce = () => {
+  const bytes = new Uint8Array(12)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 export const mountMiniTetris = ({
   rootEl,
   canvasEl,
@@ -69,6 +77,8 @@ export const mountMiniTetris = ({
   startBtnEl,
   restartBtnEl,
   toggleEl,
+  onGameOver,
+  onRunStart,
 }) => {
   if (!rootEl || !canvasEl) return { open() {}, close() {}, destroy() {} }
 
@@ -86,6 +96,13 @@ export const mountMiniTetris = ({
   let dropMs = 650
   let lastDrop = 0
   let rafId = 0
+  let linesCleared = 0
+  let piecesPlaced = 0
+  let clearPoints = 0
+  let activeMs = 0
+  let activeStartedAt = 0
+  let runNonce = ''
+  let submittedNonce = ''
 
   const randomPiece = () => {
     const keys = Object.keys(SHAPES)
@@ -123,6 +140,7 @@ export const mountMiniTetris = ({
         }
       }
     }
+    piecesPlaced += 1
   }
 
   const clearLines = () => {
@@ -134,10 +152,37 @@ export const mountMiniTetris = ({
     })
     while (board.length < ROWS) board.unshift(Array(COLS).fill(null))
     if (cleared) {
-      score += cleared * 10 * cleared
+      const gained = cleared * 10 * cleared
+      score += gained
+      clearPoints += gained
+      linesCleared += cleared
       if (scoreEl) scoreEl.textContent = String(score)
       dropMs = Math.max(280, 650 - Math.floor(score / 40) * 30)
     }
+  }
+
+  const flushActiveTime = () => {
+    if (!activeStartedAt) return
+    activeMs += Math.max(0, performance.now() - activeStartedAt)
+    activeStartedAt = 0
+  }
+
+  const beginActiveTime = () => {
+    activeStartedAt = performance.now()
+  }
+
+  const emitGameOver = () => {
+    flushActiveTime()
+    if (!runNonce || submittedNonce === runNonce) return
+    const ticket = sealPlayTicket({
+      score,
+      linesCleared,
+      piecesPlaced,
+      activeMs: Math.floor(activeMs),
+      clearPoints,
+      nonce: runNonce,
+    })
+    onGameOver?.(ticket)
   }
 
   const spawn = () => {
@@ -145,7 +190,9 @@ export const mountMiniTetris = ({
     if (collides(piece.matrix, piece.x, piece.y)) {
       running = false
       gameOver = true
+      flushActiveTime()
       if (startBtnEl) startBtnEl.textContent = 'Play again'
+      emitGameOver()
     }
   }
 
@@ -154,6 +201,12 @@ export const mountMiniTetris = ({
     score = 0
     dropMs = 650
     gameOver = false
+    linesCleared = 0
+    piecesPlaced = 0
+    clearPoints = 0
+    activeMs = 0
+    activeStartedAt = 0
+    runNonce = makeNonce()
     if (scoreEl) scoreEl.textContent = '0'
     spawn()
   }
@@ -280,7 +333,9 @@ export const mountMiniTetris = ({
     running = true
     gameOver = false
     lastDrop = performance.now()
+    beginActiveTime()
     if (startBtnEl) startBtnEl.textContent = 'Pause'
+    onRunStart?.()
     canvasEl.focus({ preventScroll: true })
   }
 
@@ -290,6 +345,8 @@ export const mountMiniTetris = ({
       return
     }
     running = !running
+    if (running) beginActiveTime()
+    else flushActiveTime()
     if (startBtnEl) startBtnEl.textContent = running ? 'Pause' : 'Resume'
     if (running) canvasEl.focus({ preventScroll: true })
   }
@@ -342,10 +399,10 @@ export const mountMiniTetris = ({
     rootEl.hidden = !open
     if (toggleEl) {
       toggleEl.setAttribute('aria-expanded', open ? 'true' : 'false')
-      toggleEl.textContent = open ? 'Get Back to Work' : 'Take a Break'
     }
     if (!open) {
       running = false
+      flushActiveTime()
       if (startBtnEl) startBtnEl.textContent = 'Play'
     }
   }
@@ -376,6 +433,9 @@ export const mountMiniTetris = ({
     },
     close() {
       setOpen(false)
+    },
+    markSubmitted(nonce) {
+      if (nonce) submittedNonce = nonce
     },
     destroy() {
       cancelAnimationFrame(rafId)
