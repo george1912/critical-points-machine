@@ -2,6 +2,7 @@ import './style.css'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf'
 import pdfjsWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.js?url'
+import { initAnalytics, track } from './analytics.js'
 import { mountMiniTetris } from './mini-tetris.js'
 import {
   qualifiesForBoard,
@@ -268,6 +269,7 @@ const miniTetris = mountMiniTetris({
   },
   onRunStart: () => {
     hideScoreForm()
+    track('game-started')
   },
 })
 
@@ -276,6 +278,7 @@ stgBreakToggleEl?.addEventListener('click', () => {
   queueMicrotask(() => {
     const isOpen = stgBreakToggleEl.getAttribute('aria-expanded') === 'true'
     setBreakToggleLabel(isOpen)
+    if (isOpen) track('break-opened')
     if (!isOpen) hideScoreForm()
   })
 })
@@ -289,6 +292,7 @@ miniTetrisScoreFormEl?.addEventListener('submit', (event) => {
     return
   }
   miniTetris.markSubmitted?.(pendingTetrisTicket.nonce)
+  track('leaderboard-saved')
   renderLeaderboard(miniTetrisBoardEl)
   if (miniTetrisBoardStatusEl) {
     miniTetrisBoardStatusEl.textContent = `Saved — you’re #${result.rank}.`
@@ -1635,13 +1639,16 @@ extractButtonEl.addEventListener('click', async () => {
   try {
     const file = sourceReportEl.files?.[0]
     if (!file) {
+      track('fill-headers-no-file')
       setStatus('Choose an ATI report PDF first.', true)
       return
     }
 
     await runAutofillFromFile(file)
+    track('fill-headers-success')
   } catch (error) {
     console.error(error)
+    track('fill-headers-error')
     setWorksheetEditorVisibility(false)
     setStatus(`Could not read that report PDF: ${formatError(error)}`, true)
   }
@@ -1671,6 +1678,7 @@ loadSampleReportEl.addEventListener('click', async () => {
 
     const blob = await response.blob()
     downloadBlobFile(blob, 'practice-sample-ati-report.pdf')
+    track('sample-downloaded')
     setStatus('Practice report downloaded. Choose that file below, then tap Fill headers from report.')
     document.querySelector('.tool-start')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   } catch (error) {
@@ -1689,6 +1697,7 @@ sourceReportEl.addEventListener('change', () => {
     return
   }
 
+  track('report-selected-picker')
   setStatus(`Selected ${file.name}. Tap Fill headers from report when you’re ready.`)
 })
 
@@ -1708,6 +1717,7 @@ const assignReportFile = (file) => {
   const transfer = new DataTransfer()
   transfer.items.add(file)
   sourceReportEl.files = transfer.files
+  track('report-selected-drop')
   setStatus(`Selected ${file.name}. Tap Fill headers from report when you’re ready.`)
 }
 
@@ -1752,9 +1762,11 @@ document.querySelector('#generateCombined').addEventListener('click', async () =
   try {
     setStatus('Preparing combined PDF for P1, P2, and P3...')
     await downloadCombinedPdf()
+    track('download-combined')
     setStatus('Combined worksheet PDF ready (3 pages).')
   } catch (error) {
     console.error(error)
+    track('download-combined-error')
     setStatus(`Could not download combined PDF: ${formatError(error)}`, true)
   }
 })
@@ -1768,10 +1780,26 @@ for (const button of document.querySelectorAll('.generate-one')) {
       setStatus(`Preparing ${worksheetId.toUpperCase()} PDF...`)
       const values = getWorksheetValues(worksheetId)
       await downloadFilledPdf(values, worksheetId)
+      track(`download-${worksheetId}`)
       setStatus(`${worksheetId.toUpperCase()} PDF ready.`)
     } catch (error) {
       console.error(error)
+      track('download-single-error')
       setStatus(`Could not download ${worksheetId} PDF: ${formatError(error)}`, true)
     }
   })
 }
+
+document.querySelector('a[href="./exemplar-3-critical-points.pdf"]')?.addEventListener('click', () => {
+  track('reference-downloaded')
+})
+
+document.querySelector('a[href^="mailto:"]')?.addEventListener('click', () => {
+  track('bug-email-clicked')
+})
+
+document.querySelector('details.guide')?.addEventListener('toggle', (event) => {
+  if (event.currentTarget.open) track('guide-opened')
+})
+
+initAnalytics()
