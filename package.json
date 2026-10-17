@@ -11,18 +11,19 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "node --test",
     "electron": "vite build && electron .",
     "dist:mac": "bash scripts/build-dmg.sh"
   },
   "devDependencies": {
     "debug": "^4.4.3",
-    "electron": "^37.2.0",
-    "electron-builder": "^26.0.12",
+    "electron": "^44.9.0",
+    "electron-builder": "^26.17.0",
     "vite": "^8.0.9"
   },
   "dependencies": {
     "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^3.11.174"
+    "pdfjs-dist": "^4.10.38"
   },
   "build": {
     "appId": "com.criticalpoints.worksheetfiller",

@@ -1,7 +1,32 @@
 const { app, BrowserWindow, shell } = require('electron')
 const path = require('path')
+const { pathToFileURL } = require('url')
 
 const isDev = !app.isPackaged
+const devServerUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173'
+const appFileUrl = pathToFileURL(path.join(__dirname, '..', 'dist', 'index.html')).href
+
+const isTrustedAppUrl = (url) => {
+  try {
+    const candidate = new URL(url)
+    if (isDev) return candidate.origin === new URL(devServerUrl).origin
+    return candidate.href === appFileUrl
+  } catch {
+    return false
+  }
+}
+
+const openExternalUrl = (url) => {
+  try {
+    const parsed = new URL(url)
+    if (!['http:', 'https:', 'mailto:'].includes(parsed.protocol)) return
+    shell.openExternal(url).catch((error) => {
+      console.error('Could not open external link:', error.message)
+    })
+  } catch {
+    // Invalid URLs are denied; they are not passed to the operating system.
+  }
+}
 
 const createWindow = () => {
   const win = new BrowserWindow({
@@ -19,14 +44,19 @@ const createWindow = () => {
   })
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    openExternalUrl(url)
     return { action: 'deny' }
+  })
+  win.webContents.on('will-navigate', (event, url) => {
+    if (isTrustedAppUrl(url)) return
+    event.preventDefault()
+    openExternalUrl(url)
   })
 
   if (isDev) {
-    win.loadURL(process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173')
+    win.loadURL(devServerUrl)
   } else {
-    win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
+    win.loadURL(appFileUrl)
   }
 }
 

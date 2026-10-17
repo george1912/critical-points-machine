@@ -373,13 +373,19 @@ export const mountMiniTetris = ({
   }
 
   const loop = (time) => {
+    rafId = 0
+    if (!open) return
     if (running && time - lastDrop >= dropMs) {
       tickDrop()
       lastDrop = time
     }
     draw()
     drawHold()
-    rafId = requestAnimationFrame(loop)
+    scheduleLoop()
+  }
+
+  const scheduleLoop = () => {
+    if (open && running && !rafId) rafId = requestAnimationFrame(loop)
   }
 
   const start = () => {
@@ -391,6 +397,7 @@ export const mountMiniTetris = ({
     if (startBtnEl) startBtnEl.textContent = 'Pause'
     onRunStart?.()
     canvasEl.focus({ preventScroll: true })
+    scheduleLoop()
   }
 
   const toggle = () => {
@@ -403,6 +410,7 @@ export const mountMiniTetris = ({
     else flushActiveTime()
     if (startBtnEl) startBtnEl.textContent = running ? 'Pause' : 'Resume'
     if (running) canvasEl.focus({ preventScroll: true })
+    scheduleLoop()
   }
 
   const onKey = (event) => {
@@ -462,6 +470,12 @@ export const mountMiniTetris = ({
       running = false
       flushActiveTime()
       if (startBtnEl) startBtnEl.textContent = 'Play'
+      if (rafId) cancelAnimationFrame(rafId)
+      rafId = 0
+    } else {
+      draw()
+      drawHold()
+      scheduleLoop()
     }
   }
 
@@ -482,7 +496,6 @@ export const mountMiniTetris = ({
   })
   window.addEventListener('keydown', onKey)
 
-  rafId = requestAnimationFrame(loop)
   draw()
   drawHold()
 
@@ -497,7 +510,8 @@ export const mountMiniTetris = ({
       if (nonce) submittedNonce = nonce
     },
     destroy() {
-      cancelAnimationFrame(rafId)
+      if (rafId) cancelAnimationFrame(rafId)
+      rafId = 0
       window.removeEventListener('keydown', onKey)
     },
   }

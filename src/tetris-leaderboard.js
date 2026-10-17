@@ -1,4 +1,4 @@
-/** Tiny Tetris leaderboard — local top scores with anti-cheat + name filters. */
+/** Tiny Tetris leaderboard — local scores with consistency checks and name filters. */
 
 const STORAGE_KEY = 'stg-tiny-tetris-board-v1'
 const MAX_ENTRIES = 10
@@ -8,6 +8,7 @@ const MIN_NAME = 2
 const MAX_NAME = 12
 const MIN_MS_PER_POINT = 35
 const MAX_SUBMITS_PER_HOUR = 20
+const MAX_SESSION_MS = 24 * 60 * 60 * 1000
 const SALT = 'stg-tiny-tetris-v1-break-board'
 
 const BLOCKED_NAMES = [
@@ -69,13 +70,14 @@ const isNameAllowed = (name) => {
 }
 
 const hashTicket = (parts) => {
+  // A client-side checksum catches accidental edits; it is not server-side anti-cheat.
   const raw = `${SALT}|${parts.join('|')}`
   let h = 2166136261
   for (let i = 0; i < raw.length; i += 1) {
     h ^= raw.charCodeAt(i)
     h = Math.imul(h, 16777619)
   }
-  return (h >>> 0).toString(16)
+  return (h >>> 0).toString(16).padStart(8, '0')
 }
 
 export const sealPlayTicket = ({
@@ -114,18 +116,33 @@ const readBoard = () => {
     if (!raw) return []
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
+    const now = Date.now()
     return parsed
       .filter(
         (row) =>
           row &&
           typeof row.name === 'string' &&
+          isNameAllowed(row.name) &&
           Number.isFinite(row.score) &&
+          Number.isInteger(row.score) &&
           row.score >= MIN_SCORE &&
-          row.score <= MAX_SCORE,
+          row.score <= MAX_SCORE &&
+          Number.isFinite(row.at) &&
+          row.at > 0 &&
+          row.at <= now &&
+          typeof row.nonce === 'string' &&
+          /^[a-f0-9]{24}$/i.test(row.nonce) &&
+          Number.isInteger(row.lines) &&
+          row.lines >= 1 &&
+          row.lines <= 400,
       )
       .sort((a, b) => b.score - a.score || a.at - b.at)
       .slice(0, MAX_ENTRIES)
-  } catch {
+  } catch (error) {
+    console.warn(
+      '[Tetris leaderboard] Could not read saved scores:',
+      error instanceof Error ? error.name : 'Unknown error',
+    )
     return []
   }
 }
@@ -140,7 +157,9 @@ const recentSubmitCount = (board) => {
 }
 
 export const validatePlayTicket = (ticket) => {
-  if (!ticket || typeof ticket !== 'object') return 'Missing play session.'
+  if (!ticket || typeof ticket !== 'object' || Array.isArray(ticket)) {
+    return 'Missing play session.'
+  }
   const {
     score,
     linesCleared,
@@ -164,12 +183,20 @@ export const validatePlayTicket = (ticket) => {
   if (!Number.isFinite(activeMs) || activeMs < 4_000) {
     return 'Play a bit longer first.'
   }
+  if (activeMs > MAX_SESSION_MS) return 'Invalid play duration.'
   if (score !== clearPoints) return 'Score did not match play session.'
   if (linesCleared > piecesPlaced * 4) return 'Impossible clear rate.'
   if (activeMs < score * MIN_MS_PER_POINT) return 'Score rose too fast to count.'
-  if (Date.now() - issuedAt > 5 * 60 * 1000) return 'Session expired — play again.'
-  if (Date.now() - issuedAt < 0) return 'Invalid session time.'
-  if (!nonce || String(nonce).length < 8) return 'Invalid session.'
+  if (!Number.isInteger(issuedAt)) return 'Invalid session time.'
+  const ticketAge = Date.now() - issuedAt
+  if (ticketAge > 5 * 60 * 1000) return 'Session expired — play again.'
+  if (ticketAge < 0) return 'Invalid session time.'
+  if (typeof nonce !== 'string' || !/^[a-f0-9]{24}$/i.test(nonce)) {
+    return 'Invalid session.'
+  }
+  if (typeof sig !== 'string' || !/^[a-f0-9]{8}$/i.test(sig)) {
+    return 'Could not verify play session.'
+  }
 
   const expected = hashTicket([
     score,
@@ -180,7 +207,7 @@ export const validatePlayTicket = (ticket) => {
     nonce,
     issuedAt,
   ])
-  if (sig !== expected) return 'Tampered score rejected.'
+  if (sig !== expected) return 'Could not verify play session.'
   return null
 }
 
@@ -224,7 +251,15 @@ export const submitScore = (nameInput, ticket) => {
     .sort((a, b) => b.score - a.score || a.at - b.at)
     .slice(0, MAX_ENTRIES)
 
-  writeBoard(next)
+  try {
+    writeBoard(next)
+  } catch (error) {
+    console.warn(
+      '[Tetris leaderboard] Could not save scores:',
+      error instanceof Error ? error.name : 'Unknown error',
+    )
+    return { ok: false, error: 'Could not save scores. Browser storage is unavailable.' }
+  }
   return { ok: true, board: next, rank: next.findIndex((row) => row.nonce === ticket.nonce) + 1 }
 }
 
@@ -240,26 +275,27 @@ export const qualifiesForBoard = (score) => {
 export const renderLeaderboard = (listEl) => {
   if (!listEl) return
   const board = readBoard()
+  const fragment = document.createDocumentFragment()
   if (!board.length) {
-    listEl.innerHTML = `<li class="stg-board-empty">No scores yet — clear a few lines.</li>`
-    return
+    const empty = document.createElement('li')
+    empty.className = 'stg-board-empty'
+    empty.textContent = 'No scores yet — clear a few lines.'
+    fragment.append(empty)
+  } else {
+    board.forEach((row, index) => {
+      const item = document.createElement('li')
+      const rank = document.createElement('span')
+      rank.className = 'stg-board-rank'
+      rank.textContent = String(index + 1)
+      const name = document.createElement('span')
+      name.className = 'stg-board-name'
+      name.textContent = row.name
+      const score = document.createElement('span')
+      score.className = 'stg-board-score'
+      score.textContent = String(row.score)
+      item.append(rank, name, score)
+      fragment.append(item)
+    })
   }
-  listEl.innerHTML = board
-    .map(
-      (row, index) => `
-      <li>
-        <span class="stg-board-rank">${index + 1}</span>
-        <span class="stg-board-name">${escapeHtml(row.name)}</span>
-        <span class="stg-board-score">${row.score}</span>
-      </li>`,
-    )
-    .join('')
+  listEl.replaceChildren(fragment)
 }
-
-const escapeHtml = (value) =>
-  String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')

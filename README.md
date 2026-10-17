@@ -14,6 +14,7 @@ Open the live app:
 4. Download P1–P3 or one combined PDF  
 
 Everything runs in your browser. Your report file stays on your device.
+Reports must be text-based PDFs that are 25 MB or smaller and contain no more than 100 pages.
 
 ## Develop locally
 

@@ -1,7 +1,5 @@
 import './style.css'
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf'
-import pdfjsWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.js?url'
+import pdfjsWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 import { initAnalytics, track } from './analytics.js'
 import { mountMiniTetris } from './mini-tetris.js'
 import {
@@ -10,10 +8,14 @@ import {
   submitScore,
 } from './tetris-leaderboard.js'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
-
 const log = (...args) => console.log('[CP Worksheet]', ...args)
 const logError = (...args) => console.error('[CP Worksheet]', ...args)
+
+const loadPdfJs = async () => {
+  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
+  return pdfjsLib
+}
 
 const app = document.querySelector('#app')
 
@@ -318,9 +320,6 @@ const setWorksheetEditorVisibility = (isVisible) => {
 }
 
 let extractedExamName = ''
-let cachedReportText = ''
-let cachedCategoryScores = []
-
 // Order matches common ATI major-area sequencing; optional rows (e.g. Psychosocial) may be
 // omitted on some assessments — parsing uses only categories that actually appear in the PDF.
 // ATI has renamed some labels across years (e.g. Safety…); keep current + legacy names.
@@ -411,6 +410,9 @@ const CONTENT_TEXT_X = 105
 const CONTENT_TEXT_MAX_WIDTH = 480
 
 const SHOW_CRITICAL_POINT_DEBUG_BOXES = false
+const MAX_REPORT_SIZE_BYTES = 25 * 1024 * 1024
+const MAX_REPORT_PAGES = 100
+const MAX_REPORT_TEXT_LENGTH = 1_000_000
 
 const slugifyFilenamePart = (text) =>
   text
@@ -551,16 +553,27 @@ const removeSubConceptPrefixFromContent = (subConcept, content) => {
 }
 
 const extractTextFromPdf = async (file) => {
-  log('extractTextFromPdf start', {
-    name: file?.name,
-    size: file?.size,
-    type: file?.type,
-    workerSrc: pdfjsLib.GlobalWorkerOptions.workerSrc,
-  })
+  if (!file || typeof file.arrayBuffer !== 'function') {
+    throw new Error('Choose a PDF report file first.')
+  }
+  if (!Number.isFinite(file.size) || file.size === 0) {
+    throw new Error('The selected PDF is empty or could not be read.')
+  }
+  if (file.size > MAX_REPORT_SIZE_BYTES) {
+    throw new Error('That PDF is too large. Choose a report under 25 MB.')
+  }
 
+  let loadingTask
+  let pdf
   try {
+    const pdfjsLib = await loadPdfJs()
     const bytes = new Uint8Array(await file.arrayBuffer())
-    const loadingTask = pdfjsLib.getDocument({
+    const header = new TextDecoder('latin1').decode(bytes.subarray(0, 1024))
+    if (!/%PDF-\d\.\d/.test(header)) {
+      throw new Error('The selected file does not contain a valid PDF header.')
+    }
+
+    loadingTask = pdfjsLib.getDocument({
       data: bytes,
       disableRange: true,
       disableStream: true,
@@ -569,26 +582,42 @@ const extractTextFromPdf = async (file) => {
       isEvalSupported: false,
       useSystemFonts: true,
     })
-    const pdf = await loadingTask.promise
-    const pages = []
+    pdf = await loadingTask.promise
+    if (!Number.isInteger(pdf.numPages) || pdf.numPages < 1) {
+      throw new Error('The PDF does not contain any readable pages.')
+    }
+    if (pdf.numPages > MAX_REPORT_PAGES) {
+      throw new Error('That PDF has too many pages. Choose a report with 100 pages or fewer.')
+    }
 
-    log('PDF loaded', { numPages: pdf.numPages })
+    const pages = []
+    let textLength = 0
 
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
       const page = await pdf.getPage(pageNum)
-      const textContent = await page.getTextContent()
-      const pageText = textContent.items.map((item) => item.str).join('\n')
-      pages.push(pageText)
+      try {
+        const textContent = await page.getTextContent()
+        const pageText = textContent.items.map((item) => item.str).join('\n')
+        textLength += pageText.length
+        if (textLength > MAX_REPORT_TEXT_LENGTH) {
+          throw new Error('That PDF contains too much text to process safely.')
+        }
+        pages.push(pageText)
+      } finally {
+        page.cleanup()
+      }
     }
 
     const joined = pages.join('\n\n')
-    log('extractTextFromPdf done', { textLength: joined.length })
     return joined
   } catch (error) {
-    logError('extractTextFromPdf failed', error)
+    logError('extractTextFromPdf failed', error instanceof Error ? error.name : 'Unknown error')
     throw new Error(
       `Could not read PDF text (often Safari/worker or a bad file). ${formatError(error)}`,
     )
+  } finally {
+    if (pdf) await pdf.destroy()
+    else if (loadingTask) await loadingTask.destroy()
   }
 }
 
@@ -719,7 +748,7 @@ const parseGenericCategoryScoresWithSlice = (tableSlice) => {
     const category = normalizeWhitespace(m[1])
     const score = Number.parseFloat(m[scoreGroup])
 
-    if (isPlausibleCategoryLabel(category)) {
+    if (Number.isFinite(score) && score >= 0 && score <= 100 && isPlausibleCategoryLabel(category)) {
       scores.push({ category, score })
     }
 
@@ -742,7 +771,8 @@ const parseGenericCategoryScoresGlobalFallback = (tableSlice) => {
     const category = normalizeWhitespace(match[1])
     const score = Number.parseFloat(match[3])
     const key = `${category}|${score}`
-    if (isPlausibleCategoryLabel(category) && !seen.has(key)) {
+    if (Number.isFinite(score) && score >= 0 && score <= 100 &&
+      isPlausibleCategoryLabel(category) && !seen.has(key)) {
       seen.add(key)
       scores.push({ category, score })
     }
@@ -809,7 +839,10 @@ const parseKnownNclexCategoryScores = (majorLine) => {
     const percentMatch = rowMatch[1].match(/(\d+(?:\.\d+)?)%/)
     if (!percentMatch) continue
 
-    scores.push({ category, score: Number.parseFloat(percentMatch[1]) })
+    const score = Number.parseFloat(percentMatch[1])
+    if (Number.isFinite(score) && score >= 0 && score <= 100) {
+      scores.push({ category, score })
+    }
   }
 
   return scores
@@ -847,7 +880,6 @@ const parseCategoryScores = (fullText) => {
   log('parseCategoryScores', {
     majorLen: majorLine.length,
     topicsFound: findTopicsToReviewIndex(majorLine) !== -1,
-    preview: majorLine.slice(0, 280),
   })
 
   const knownScores = parseKnownNclexCategoryScores(majorLine)
@@ -865,7 +897,7 @@ const parseCategoryScores = (fullText) => {
       return rescue
     }
     logError('parseCategoryScores: no rows after sequential + global fallback', {
-      preview: majorLine.slice(0, 500),
+      majorLen: majorLine.length,
     })
     throw new Error(
       'Could not parse category scores. Open the browser console and expand the "[CP Worksheet] parseCategoryScores" log — if majorLen is 0, PDF text did not extract.',
@@ -1058,8 +1090,8 @@ const extractFromMajorCategorySoft = (fullText, category, boundaryCategories = K
 const extractTopicMappingBestEffort = (fullText, category, boundaryCategories = KNOWN_CATEGORIES) => {
   try {
     return extractTopicMapping(fullText, category, boundaryCategories)
-  } catch (e) {
-    log('extractTopicMapping: soft fallback', { category, err: formatError(e) })
+  } catch {
+    log('extractTopicMapping: soft fallback')
     return extractFromMajorCategorySoft(fullText, category, boundaryCategories)
   }
 }
@@ -1256,6 +1288,7 @@ const drawWrappedTextBlock = ({
   page,
   text,
   font,
+  rgb,
   size,
   x,
   topY,
@@ -1277,7 +1310,7 @@ const drawWrappedTextBlock = ({
   }
 }
 
-const drawDebugOutline = ({ page, x, y, width, height, label }) => {
+const drawDebugOutline = ({ page, rgb, x, y, width, height, label }) => {
   page.drawRectangle({
     x,
     y,
@@ -1423,27 +1456,61 @@ const updateWorksheetFilenamePreviews = () => {
   }
 }
 
+const uniqueCategoryScores = (entries) => {
+  const seen = new Set()
+  const unique = []
+
+  for (const entry of entries) {
+    if (
+      !entry ||
+      typeof entry.category !== 'string' ||
+      !Number.isFinite(entry.score) ||
+      entry.score < 0 ||
+      entry.score > 100
+    ) {
+      continue
+    }
+
+    const category = normalizeWhitespace(entry.category)
+    const key = categoryNameVariants(category)
+      .map((name) => name.toLowerCase())
+      .sort()
+      .join('|')
+    if (!category || seen.has(key)) continue
+    seen.add(key)
+    unique.push({ category, score: entry.score })
+  }
+
+  return unique
+}
+
 const extractAndPopulateWorksheets = async (file) => {
   const rawText = await extractTextFromPdf(file)
   const fullText = normalizePdfExtractedText(rawText)
-  cachedReportText = fullText
   extractedExamName = extractExamName(fullText)
 
   let scores = []
   let fallbackTopicRows = []
   try {
-    scores = parseCategoryScores(fullText)
+    scores = uniqueCategoryScores(parseCategoryScores(fullText))
+    if (scores.length < worksheetConfigs.length) {
+      throw new Error('Fewer than three distinct category scores were found.')
+    }
   } catch (error) {
     fallbackTopicRows = parseTopicsOnlyFallback(fullText)
-    if (!fallbackTopicRows.length) throw error
+    const fallbackScores = uniqueCategoryScores(
+      fallbackTopicRows.map(({ category, score }) => ({ category, score })),
+    )
+    if (fallbackScores.length < worksheetConfigs.length) {
+      throw new Error(
+        `Could not identify three distinct report categories. ${formatError(error)}`,
+      )
+    }
     log('extractAndPopulateWorksheets: using topics-only fallback', {
-      count: fallbackTopicRows.length,
-      reason: formatError(error),
+      count: fallbackScores.length,
     })
-    scores = fallbackTopicRows.map(({ category, score }) => ({ category, score }))
+    scores = fallbackScores
   }
-
-  cachedCategoryScores = scores
 
   const boundaries = mergeTopicBoundaries(scores.map((entry) => entry.category))
   const lowestThree = pickLowestCategoriesPreferringTopics(
@@ -1495,6 +1562,7 @@ const createFilledPdfBytes = async ({
   criticalPoint2,
   criticalPoint3,
 }) => {
+  const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
   // Relative path works for Vite web preview and Electron packaged builds.
   const templateUrl = new URL('template.pdf', document.baseURI).toString()
   log('Loading template', templateUrl)
@@ -1516,6 +1584,7 @@ const createFilledPdfBytes = async ({
     page,
     text: clientCareNeedCategory,
     font,
+    rgb,
     size: 12,
     x: CATEGORY_TEXT_X,
     topY: 595,
@@ -1528,6 +1597,7 @@ const createFilledPdfBytes = async ({
     page,
     text: subConcept,
     font,
+    rgb,
     size: 12,
     x: SUBCONCEPT_TEXT_X,
     topY: 537,
@@ -1540,6 +1610,7 @@ const createFilledPdfBytes = async ({
     page,
     text: content,
     font,
+    rgb,
     size: 11,
     x: CONTENT_TEXT_X,
     topY: 475,
@@ -1560,13 +1631,14 @@ const createFilledPdfBytes = async ({
     }
 
     if (SHOW_CRITICAL_POINT_DEBUG_BOXES) {
-      drawDebugOutline({ page, ...debugBox })
+      drawDebugOutline({ page, rgb, ...debugBox })
     }
 
     drawWrappedTextBlock({
       page,
       text: criticalPoints[i] || '',
       font,
+      rgb,
       size: 10,
       x: CRITICAL_POINT_TEXT_X,
       topY: textTopY,
@@ -1605,6 +1677,7 @@ const downloadFilledPdf = async (
 }
 
 const downloadCombinedPdf = async () => {
+  const { PDFDocument } = await import('pdf-lib')
   const combinedPdf = await PDFDocument.create()
 
   for (const worksheet of worksheetConfigs) {
@@ -1629,6 +1702,12 @@ updateWorksheetFilenamePreviews()
 setWorksheetEditorVisibility(false)
 
 const runAutofillFromFile = async (file) => {
+  if (!isPdfFile(file)) {
+    throw new Error('Please choose a PDF report file.')
+  }
+  if (file.size > MAX_REPORT_SIZE_BYTES) {
+    throw new Error('That PDF is too large. Choose a report under 25 MB.')
+  }
   setStatus('Reading headers from report...')
   const filledSummary = await extractAndPopulateWorksheets(file)
   setWorksheetEditorVisibility(true)
@@ -1647,7 +1726,7 @@ extractButtonEl.addEventListener('click', async () => {
     await runAutofillFromFile(file)
     track('fill-headers-success')
   } catch (error) {
-    console.error(error)
+    logError('Header extraction failed', error instanceof Error ? error.name : 'Unknown error')
     track('fill-headers-error')
     setWorksheetEditorVisibility(false)
     setStatus(`Could not read that report PDF: ${formatError(error)}`, true)
@@ -1697,6 +1776,17 @@ sourceReportEl.addEventListener('change', () => {
     return
   }
 
+  if (!isPdfFile(file)) {
+    setWorksheetEditorVisibility(false)
+    setStatus('Please choose a PDF report file.', true)
+    return
+  }
+  if (file.size > MAX_REPORT_SIZE_BYTES) {
+    setWorksheetEditorVisibility(false)
+    setStatus('That PDF is too large. Choose a report under 25 MB.', true)
+    return
+  }
+
   track('report-selected-picker')
   setStatus(`Selected ${file.name}. Tap Fill headers from report when you’re ready.`)
 })
@@ -1710,7 +1800,18 @@ const isPdfFile = (file) => {
 
 const assignReportFile = (file) => {
   if (!isPdfFile(file)) {
+    setWorksheetEditorVisibility(false)
     setStatus('Please drop a PDF report file.', true)
+    return
+  }
+  if (!Number.isFinite(file.size) || file.size === 0) {
+    setWorksheetEditorVisibility(false)
+    setStatus('The selected PDF is empty or could not be read.', true)
+    return
+  }
+  if (file.size > MAX_REPORT_SIZE_BYTES) {
+    setWorksheetEditorVisibility(false)
+    setStatus('That PDF is too large. Choose a report under 25 MB.', true)
     return
   }
 
