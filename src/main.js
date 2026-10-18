@@ -2,6 +2,7 @@ import './style.css'
 import pdfjsWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 import { initAnalytics, track } from './analytics.js'
 import { mountMiniTetris } from './mini-tetris.js'
+import { mountFeedbackForm } from './feedback-form.js'
 import {
   qualifiesForBoard,
   renderLeaderboard,
@@ -181,13 +182,46 @@ app.innerHTML = `
         </div>
       </section>
 
-      <section class="contact-note">
-        <p>
-          If you hit a bug or error, email
-          <a class="text-link" href="mailto:george.ulloa@downstate.edu?subject=Critical%20Points%20Machine%20bug">george.ulloa@downstate.edu</a>.
-        </p>
-        <p>Attach a screenshot and a sample file if you can.</p>
-        <p>The more information you share, the easier it is to fix. 😊</p>
+      <section class="contact-note" id="feedback">
+        <p>Write a blurb, and attach a picture or a PDF if you have one.</p>
+        <p>Contact info is optional. Send delivers it to george.ulloa@downstate.edu.</p>
+        <details class="feedback-panel" id="feedbackPanel">
+          <summary class="feedback-summary">
+            <span class="feedback-summary-label">Send feedback</span>
+          </summary>
+          <form id="feedbackForm" class="feedback-form" novalidate>
+            <label>
+              Blurb
+              <textarea id="feedbackBlurb" name="blurb" rows="4" maxlength="4000" placeholder="What should I know?"></textarea>
+            </label>
+            <label>
+              Picture or PDF
+              <input
+                id="feedbackFile"
+                name="file"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif,application/pdf,.png,.jpg,.jpeg,.webp,.gif,.heic,.heif,.pdf"
+              />
+            </label>
+            <p id="feedbackFileName" class="feedback-file-name">No file chosen. Optional.</p>
+            <label>
+              Contact (optional)
+              <input
+                id="feedbackContact"
+                name="contact"
+                type="text"
+                maxlength="200"
+                autocomplete="off"
+                placeholder="Email, phone, or another way to reach you"
+              />
+            </label>
+            <input class="feedback-honey" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" />
+            <div class="feedback-actions">
+              <button id="feedbackSend" type="submit">Send</button>
+            </div>
+            <p id="feedbackStatus" class="feedback-status" role="status" aria-live="polite"></p>
+          </form>
+        </details>
       </section>
 
       <footer class="dev-credit">
@@ -391,16 +425,22 @@ const worksheetConfigs = [
   },
 ]
 
+// Baselines of the printed "1." / "2." / "3." labels. Each cell is ~51pt tall
+// (top rule to bottom rule) and the blank template lays out four text lines
+// on a ~12.6pt grid starting on that same baseline.
 const CRITICAL_POINT_ROWS = [
-  { label: 'CP1', bulletBaselineY: 437.4 },
-  { label: 'CP2', bulletBaselineY: 386.4 },
-  { label: 'CP3', bulletBaselineY: 335.2 },
+  { label: 'CP1', bulletBaselineY: 437.35, boxBottomY: 397.15 },
+  { label: 'CP2', bulletBaselineY: 386.35, boxBottomY: 346.01 },
+  { label: 'CP3', bulletBaselineY: 335.21, boxBottomY: 294.89 },
 ]
 
-const CRITICAL_POINT_TEXT_X = 128
-const CRITICAL_POINT_TEXT_MAX_WIDTH = 405
-const CRITICAL_POINT_TEXT_MAX_HEIGHT = 28
-const CRITICAL_POINT_VERTICAL_NUDGE = -24
+const CRITICAL_POINT_TEXT_X = 100
+const CRITICAL_POINT_TEXT_MAX_WIDTH = 430
+const CRITICAL_POINT_FONT_SIZE = 11
+const CRITICAL_POINT_LINE_HEIGHT = 12.2
+// Four lines: the first sits on the bullet baseline, and the last stays
+// above the cell's bottom rule (floor(50 / 12.2) === 4).
+const CRITICAL_POINT_TEXT_MAX_HEIGHT = 50
 
 const CATEGORY_TEXT_X = 118
 const CATEGORY_TEXT_MAX_WIDTH = 450
@@ -1622,16 +1662,17 @@ const createFilledPdfBytes = async ({
   const criticalPoints = [criticalPoint1, criticalPoint2, criticalPoint3]
   for (let i = 0; i < CRITICAL_POINT_ROWS.length; i += 1) {
     const row = CRITICAL_POINT_ROWS[i]
-    const textTopY = row.bulletBaselineY + CRITICAL_POINT_VERTICAL_NUDGE
-    const debugBox = {
-      x: CRITICAL_POINT_TEXT_X - 2,
-      y: textTopY - CRITICAL_POINT_TEXT_MAX_HEIGHT,
-      width: CRITICAL_POINT_TEXT_MAX_WIDTH + 4,
-      height: CRITICAL_POINT_TEXT_MAX_HEIGHT,
-    }
+    const textTopY = row.bulletBaselineY
 
     if (SHOW_CRITICAL_POINT_DEBUG_BOXES) {
-      drawDebugOutline({ page, rgb, ...debugBox })
+      drawDebugOutline({
+        page,
+        rgb,
+        x: CRITICAL_POINT_TEXT_X - 2,
+        y: row.boxBottomY,
+        width: CRITICAL_POINT_TEXT_MAX_WIDTH + 4,
+        height: textTopY - row.boxBottomY + CRITICAL_POINT_FONT_SIZE,
+      })
     }
 
     drawWrappedTextBlock({
@@ -1639,12 +1680,12 @@ const createFilledPdfBytes = async ({
       text: criticalPoints[i] || '',
       font,
       rgb,
-      size: 10,
+      size: CRITICAL_POINT_FONT_SIZE,
       x: CRITICAL_POINT_TEXT_X,
       topY: textTopY,
       maxWidth: CRITICAL_POINT_TEXT_MAX_WIDTH,
       maxHeight: CRITICAL_POINT_TEXT_MAX_HEIGHT,
-      lineHeight: 10,
+      lineHeight: CRITICAL_POINT_LINE_HEIGHT,
     })
   }
 
@@ -1895,9 +1936,7 @@ document.querySelector('a[href="./exemplar-3-critical-points.pdf"]')?.addEventLi
   track('reference-downloaded')
 })
 
-document.querySelector('a[href^="mailto:"]')?.addEventListener('click', () => {
-  track('bug-email-clicked')
-})
+mountFeedbackForm()
 
 document.querySelector('details.guide')?.addEventListener('toggle', (event) => {
   if (event.currentTarget.open) track('guide-opened')
