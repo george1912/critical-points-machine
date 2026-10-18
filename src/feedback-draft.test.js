@@ -27,12 +27,6 @@ test('a picture or pdf can be sent with no blurb', () => {
   assert.equal(pdf.draft.contact, 'student@example.com')
 })
 
-test('contact info is optional and can be a phone number', () => {
-  const result = inspectFeedbackDraft({ blurb: 'Hello', contact: '718-555-0100', file: null })
-  assert.equal(result.ok, true)
-  assert.equal(result.draft.contact, '718-555-0100')
-})
-
 test('an empty send is rejected', () => {
   const result = inspectFeedbackDraft({ blurb: '   ', contact: '', file: null })
   assert.equal(result.ok, false)

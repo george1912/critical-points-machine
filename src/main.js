@@ -125,7 +125,7 @@ app.innerHTML = `
             </span>
             <span class="stg-break-copy">
               <span class="stg-break-kicker">Break room</span>
-              <span id="stgBreakToggleLabel" class="stg-break-label">Take a Break</span>
+              <span id="stgBreakToggleLabel" class="stg-break-label">Enjoy a game</span>
             </span>
           </button>
           <div id="stgPlay" class="stg-play is-collapsed" hidden>
@@ -133,7 +133,7 @@ app.innerHTML = `
               ← → move · Space rotate · ↓ soft · ↑ drop · C hold
             </p>
             <p class="stg-play-note stg-play-note-touch">
-              Pad on the right · Hold swaps the piece
+              Use the pad · Hold swaps the piece
             </p>
             <div class="stg-play-board">
               <canvas id="miniTetris" width="160" height="256" tabindex="0" aria-label="Break room Tetris"></canvas>
@@ -162,18 +162,25 @@ app.innerHTML = `
               <ol id="miniTetrisBoard" class="stg-board-list"></ol>
               <p id="miniTetrisBoardStatus" class="stg-board-status" role="status"></p>
               <form id="miniTetrisScoreForm" class="stg-board-form is-hidden" hidden>
-                <label class="stg-board-label" for="miniTetrisName">
-                  Score <span id="miniTetrisPendingScore">0</span> — nickname
-                </label>
-                <div class="stg-board-row">
-                  <input
-                    id="miniTetrisName"
-                    name="tetrisName"
-                    type="text"
-                    maxlength="12"
-                    autocomplete="nickname"
-                    placeholder="Maya"
-                  />
+                <p class="stg-board-label">Score <span id="miniTetrisPendingScore">0</span></p>
+                <div class="stg-initials" id="stgInitials">
+                  <div class="stg-initial is-active" data-slot="0">
+                    <button type="button" class="stg-initial-nudge" data-slot="0" data-dir="-1" aria-label="Previous letter for initial 1">↑</button>
+                    <button type="button" class="stg-initial-letter" data-slot="0">A</button>
+                    <button type="button" class="stg-initial-nudge" data-slot="0" data-dir="1" aria-label="Next letter for initial 1">↓</button>
+                  </div>
+                  <span class="stg-initial-dot" aria-hidden="true">.</span>
+                  <div class="stg-initial" data-slot="1">
+                    <button type="button" class="stg-initial-nudge" data-slot="1" data-dir="-1" aria-label="Previous letter for initial 2">↑</button>
+                    <button type="button" class="stg-initial-letter" data-slot="1">A</button>
+                    <button type="button" class="stg-initial-nudge" data-slot="1" data-dir="1" aria-label="Next letter for initial 2">↓</button>
+                  </div>
+                  <span class="stg-initial-dot" aria-hidden="true">.</span>
+                  <div class="stg-initial" data-slot="2">
+                    <button type="button" class="stg-initial-nudge" data-slot="2" data-dir="-1" aria-label="Previous letter for initial 3">↑</button>
+                    <button type="button" class="stg-initial-letter" data-slot="2">A</button>
+                    <button type="button" class="stg-initial-nudge" data-slot="2" data-dir="1" aria-label="Next letter for initial 3">↓</button>
+                  </div>
                   <button type="submit" class="stg-play-btn">Save</button>
                 </div>
               </form>
@@ -183,8 +190,8 @@ app.innerHTML = `
       </section>
 
       <section class="contact-note" id="feedback">
-        <p>Write a blurb, and attach a picture or a PDF if you have one.</p>
-        <p>Contact info is optional. Send delivers it to george.ulloa@downstate.edu.</p>
+        <p>A blurb or a picture is enough. Everything here is optional, and it helps when something needs fixing.</p>
+        <p>Leave your email if you’d like a follow-up on an issue.</p>
         <details class="feedback-panel" id="feedbackPanel">
           <summary class="feedback-summary">
             <span class="feedback-summary-label">Send feedback</span>
@@ -210,14 +217,14 @@ app.innerHTML = `
               </span>
             </label>
             <label>
-              Contact (optional)
+              Email (optional)
               <input
                 id="feedbackContact"
-                name="contact"
-                type="text"
+                name="email"
+                type="email"
                 maxlength="200"
-                autocomplete="off"
-                placeholder="Email or phone"
+                autocomplete="email"
+                placeholder="For a follow-up"
               />
             </label>
             <input class="feedback-honey" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" />
@@ -231,10 +238,10 @@ app.innerHTML = `
 
       <footer class="dev-credit">
         <div class="dev-credit-copy">
-          <p class="dev-credit-label">Developed by STG.</p>
+          <p class="dev-credit-label">Developed by G.</p>
           <p class="dev-credit-note">“Let's make life a little easier.”</p>
         </div>
-        <img class="dev-credit-logo" src="./stg-logo.png" alt="STG" width="56" height="56" />
+        <img class="dev-credit-logo" src="./stg-logo.png" alt="" width="56" height="56" />
       </footer>
     </div>
   </main>
@@ -253,15 +260,62 @@ const stgBreakToggleEl = document.querySelector('#stgBreakToggle')
 const stgBreakToggleLabelEl = document.querySelector('#stgBreakToggleLabel')
 const miniTetrisBoardEl = document.querySelector('#miniTetrisBoard')
 const miniTetrisScoreFormEl = document.querySelector('#miniTetrisScoreForm')
-const miniTetrisNameEl = document.querySelector('#miniTetrisName')
 const miniTetrisPendingScoreEl = document.querySelector('#miniTetrisPendingScore')
 const miniTetrisBoardStatusEl = document.querySelector('#miniTetrisBoardStatus')
+const stgInitialsEl = document.querySelector('#stgInitials')
 
+const INITIAL_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+let initials = ['A', 'A', 'A']
+let activeInitial = 0
 let pendingTetrisTicket = null
+
+const paintInitials = () => {
+  stgInitialsEl?.querySelectorAll('.stg-initial').forEach((slotEl) => {
+    const slot = Number(slotEl.getAttribute('data-slot'))
+    const letter = initials[slot] || 'A'
+    slotEl.classList.toggle('is-active', slot === activeInitial)
+    const letterEl = slotEl.querySelector('.stg-initial-letter')
+    if (letterEl) {
+      letterEl.textContent = letter
+      letterEl.setAttribute('aria-label', `Initial ${slot + 1}, ${letter}`)
+    }
+  })
+}
+
+const setActiveInitial = (slot) => {
+  activeInitial = (slot + 3) % 3
+  paintInitials()
+}
+
+const setInitialLetter = (slot, letter) => {
+  const next = String(letter || '').toUpperCase()
+  if (!INITIAL_LETTERS.includes(next)) return
+  initials[slot] = next
+  setActiveInitial(slot)
+}
+
+const cycleInitial = (slot, direction) => {
+  const current = INITIAL_LETTERS.indexOf(initials[slot] || 'A')
+  const next = (current + direction + INITIAL_LETTERS.length) % INITIAL_LETTERS.length
+  initials[slot] = INITIAL_LETTERS[next]
+  setActiveInitial(slot)
+}
+
+const resetInitials = () => {
+  initials = ['A', 'A', 'A']
+  activeInitial = 0
+  paintInitials()
+}
+
+const focusActiveInitial = () => {
+  stgInitialsEl
+    ?.querySelector(`.stg-initial[data-slot="${activeInitial}"] .stg-initial-letter`)
+    ?.focus({ preventScroll: true })
+}
 
 const setBreakToggleLabel = (isOpen) => {
   if (stgBreakToggleLabelEl) {
-    stgBreakToggleLabelEl.textContent = isOpen ? 'Get Back to Work' : 'Take a Break'
+    stgBreakToggleLabelEl.textContent = isOpen ? 'Hide the game' : 'Enjoy a game'
   }
 }
 
@@ -270,10 +324,12 @@ const hideScoreForm = () => {
   miniTetrisScoreFormEl?.classList.add('is-hidden')
   if (miniTetrisScoreFormEl) miniTetrisScoreFormEl.hidden = true
   if (miniTetrisBoardStatusEl) miniTetrisBoardStatusEl.textContent = ''
+  resetInitials()
 }
 
 const showScoreForm = (ticket) => {
   pendingTetrisTicket = ticket
+  resetInitials()
   if (miniTetrisPendingScoreEl) miniTetrisPendingScoreEl.textContent = String(ticket.score)
   miniTetrisScoreFormEl?.classList.remove('is-hidden')
   if (miniTetrisScoreFormEl) miniTetrisScoreFormEl.hidden = false
@@ -282,7 +338,7 @@ const showScoreForm = (ticket) => {
       ? 'Looks board-worthy.'
       : 'Save it anyway if you want a clean personal mark — only top 10 stick.'
   }
-  miniTetrisNameEl?.focus({ preventScroll: true })
+  focusActiveInitial()
 }
 
 renderLeaderboard(miniTetrisBoardEl)
@@ -324,10 +380,56 @@ stgBreakToggleEl?.addEventListener('click', () => {
   })
 })
 
+stgInitialsEl?.addEventListener('click', (event) => {
+  const nudge = event.target.closest('.stg-initial-nudge')
+  if (nudge) {
+    const slot = Number(nudge.getAttribute('data-slot'))
+    cycleInitial(slot, Number(nudge.getAttribute('data-dir')) || 1)
+    focusActiveInitial()
+    return
+  }
+  const letter = event.target.closest('.stg-initial-letter')
+  if (!letter) return
+  const slot = Number(letter.getAttribute('data-slot'))
+  if (slot === activeInitial) cycleInitial(slot, 1)
+  else setActiveInitial(slot)
+  focusActiveInitial()
+})
+
+miniTetrisScoreFormEl?.addEventListener('keydown', (event) => {
+  const key = event.key
+  if (key === 'ArrowLeft') {
+    event.preventDefault()
+    setActiveInitial(activeInitial - 1)
+    focusActiveInitial()
+  } else if (key === 'ArrowRight') {
+    event.preventDefault()
+    setActiveInitial(activeInitial + 1)
+    focusActiveInitial()
+  } else if (key === 'ArrowUp') {
+    event.preventDefault()
+    cycleInitial(activeInitial, -1)
+  } else if (key === 'ArrowDown') {
+    event.preventDefault()
+    cycleInitial(activeInitial, 1)
+  } else if (/^[a-zA-Z]$/.test(key)) {
+    event.preventDefault()
+    setInitialLetter(activeInitial, key)
+    if (activeInitial < 2) setActiveInitial(activeInitial + 1)
+    focusActiveInitial()
+  } else if (key === 'Enter') {
+    event.preventDefault()
+    miniTetrisScoreFormEl.requestSubmit()
+  } else {
+    return
+  }
+  event.stopPropagation()
+})
+
 miniTetrisScoreFormEl?.addEventListener('submit', (event) => {
   event.preventDefault()
   if (!pendingTetrisTicket) return
-  const result = submitScore(miniTetrisNameEl?.value || '', pendingTetrisTicket)
+  const result = submitScore(initials.join(''), pendingTetrisTicket)
   if (!result.ok) {
     if (miniTetrisBoardStatusEl) miniTetrisBoardStatusEl.textContent = result.error
     return
@@ -341,7 +443,7 @@ miniTetrisScoreFormEl?.addEventListener('submit', (event) => {
   pendingTetrisTicket = null
   miniTetrisScoreFormEl.classList.add('is-hidden')
   miniTetrisScoreFormEl.hidden = true
-  if (miniTetrisNameEl) miniTetrisNameEl.value = ''
+  resetInitials()
 })
 
 // Hard-force one card per row (guards against stale Safari stylesheet caching).

@@ -61,7 +61,13 @@ const rotateMatrix = (matrix) => {
 const isTypingTarget = (el) => {
   if (!el) return false
   const tag = el.tagName
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+  return (
+    tag === 'INPUT' ||
+    tag === 'TEXTAREA' ||
+    tag === 'SELECT' ||
+    el.isContentEditable ||
+    Boolean(el.closest?.('#miniTetrisScoreForm'))
+  )
 }
 
 const makeNonce = () => {

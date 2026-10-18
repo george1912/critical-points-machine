@@ -39,7 +39,7 @@ export const inspectFeedbackDraft = ({ blurb = '', contact = '', file = null } =
     return { ok: false, error: 'That blurb is too long.' }
   }
   if (cleanContact.length > MAX_FEEDBACK_CONTACT_LENGTH) {
-    return { ok: false, error: 'Keep the contact info shorter.' }
+    return { ok: false, error: 'Keep the email shorter.' }
   }
   if (file) {
     const size = file.size ?? file.bytes?.length ?? 0

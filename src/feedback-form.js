@@ -13,7 +13,7 @@ export const postFeedback = async ({ blurb, contact, file }) => {
   body.set('_captcha', 'false')
   body.set('_template', 'box')
   body.set('blurb', blurb || '(No blurb. The picture or PDF is attached.)')
-  body.set('contact', contact || 'Not provided')
+  body.set('email', contact || 'Not provided')
   if (contact && contactLooksLikeEmail(contact)) body.set('_replyto', contact)
   if (file) body.set('attachment', file)
 

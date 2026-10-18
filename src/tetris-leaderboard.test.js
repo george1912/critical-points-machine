@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { afterEach, beforeEach, test } from 'node:test'
 
 import {
+  formatInitials,
   getLeaderboard,
   sealPlayTicket,
   submitScore,
@@ -44,16 +45,26 @@ test('accepts a valid play ticket and saves a score', () => {
   const ticket = validTicket()
 
   assert.equal(validatePlayTicket(ticket), null)
-  const result = submitScore('Maya', ticket)
+  const result = submitScore('may', ticket)
   assert.equal(result.ok, true)
   if (!result.ok) return
   assert.equal(result.rank, 1)
   assert.equal(result.board.length, 1)
-  assert.equal(result.board[0].name, 'Maya')
+  assert.equal(result.board[0].name, 'MAY')
   assert.equal(result.board[0].score, 10)
   assert.equal(result.board[0].nonce, ticket.nonce)
   assert.equal(result.board[0].lines, 1)
   assert.equal(Number.isFinite(result.board[0].at), true)
+})
+
+test('initials show a period after each letter', () => {
+  assert.equal(formatInitials('may'), 'M.A.Y.')
+})
+
+test('nicknames are rejected', () => {
+  const result = submitScore('Maya', validTicket())
+  assert.equal(result.ok, false)
+  assert.equal(result.error, 'Use three letters.')
 })
 
 test('rejects tickets with malformed timestamps, signatures, or nonces', () => {
@@ -75,7 +86,7 @@ test('ignores malformed or unsafe entries in persisted board data', () => {
     STORAGE_KEY,
     JSON.stringify([
       {
-        name: 'Maya',
+        name: 'MAY',
         score: 20,
         at: Date.now() - 1000,
         nonce: '0123456789abcdef01234567',
@@ -99,7 +110,7 @@ test('ignores malformed or unsafe entries in persisted board data', () => {
   )
 
   assert.deepEqual(getLeaderboard().map(({ name, score }) => ({ name, score })), [
-    { name: 'Maya', score: 20 },
+    { name: 'MAY', score: 20 },
   ])
 })
 
@@ -111,7 +122,7 @@ test('reports when browser storage prevents saving a score', () => {
   const originalWarn = console.warn
   console.warn = () => {}
   try {
-    assert.deepEqual(submitScore('Maya', validTicket()), {
+    assert.deepEqual(submitScore('MAY', validTicket()), {
       ok: false,
       error: 'Could not save scores. Browser storage is unavailable.',
     })

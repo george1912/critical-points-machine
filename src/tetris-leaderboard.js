@@ -4,8 +4,7 @@ const STORAGE_KEY = 'stg-tiny-tetris-board-v1'
 const MAX_ENTRIES = 10
 const MAX_SCORE = 4000
 const MIN_SCORE = 10
-const MIN_NAME = 2
-const MAX_NAME = 12
+const INITIAL_COUNT = 3
 const MIN_MS_PER_POINT = 35
 const MAX_SUBMITS_PER_HOUR = 20
 const MAX_SESSION_MS = 24 * 60 * 60 * 1000
@@ -48,13 +47,15 @@ const BLOCKED_NAMES = [
   'whore',
 ]
 
-const normalizeName = (raw) =>
-  String(raw || '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .slice(0, MAX_NAME)
+const normalizeName = (raw) => String(raw || '').toUpperCase().replace(/[^A-Z]/g, '')
 
-const nameKey = (name) => name.toLowerCase().replace(/[^a-z0-9]/g, '')
+export const formatInitials = (name) => {
+  const letters = normalizeName(name).slice(0, INITIAL_COUNT)
+  if (!letters) return ''
+  return `${letters.split('').join('.')}.`
+}
+
+const nameKey = (name) => name.toLowerCase()
 
 const isNameBlocked = (name) => {
   const key = nameKey(name)
@@ -62,12 +63,7 @@ const isNameBlocked = (name) => {
   return BLOCKED_NAMES.some((word) => key.includes(word))
 }
 
-const isNameAllowed = (name) => {
-  if (name.length < MIN_NAME || name.length > MAX_NAME) return false
-  if (!/^[A-Za-z0-9][A-Za-z0-9 _.-]*$/.test(name)) return false
-  if (isNameBlocked(name)) return false
-  return true
-}
+const isNameAllowed = (name) => name.length === INITIAL_COUNT && !isNameBlocked(name)
 
 const hashTicket = (parts) => {
   // A client-side checksum catches accidental edits; it is not server-side anti-cheat.
@@ -219,7 +215,9 @@ export const submitScore = (nameInput, ticket) => {
   if (!isNameAllowed(name)) {
     return {
       ok: false,
-      error: 'Pick a clean name (2–12 letters/numbers).',
+      error: isNameBlocked(name) && name.length === INITIAL_COUNT
+        ? 'Try three other letters.'
+        : 'Use three letters.',
     }
   }
 
@@ -276,12 +274,7 @@ export const renderLeaderboard = (listEl) => {
   if (!listEl) return
   const board = readBoard()
   const fragment = document.createDocumentFragment()
-  if (!board.length) {
-    const empty = document.createElement('li')
-    empty.className = 'stg-board-empty'
-    empty.textContent = 'No scores yet — clear a few lines.'
-    fragment.append(empty)
-  } else {
+  if (board.length) {
     board.forEach((row, index) => {
       const item = document.createElement('li')
       const rank = document.createElement('span')
@@ -289,7 +282,21 @@ export const renderLeaderboard = (listEl) => {
       rank.textContent = String(index + 1)
       const name = document.createElement('span')
       name.className = 'stg-board-name'
-      name.textContent = row.name
+      name.setAttribute('aria-label', formatInitials(row.name))
+      formatInitials(row.name)
+        .replace(/\.$/, '')
+        .split('.')
+        .forEach((letter, index, letters) => {
+          const glyph = document.createElement('span')
+          glyph.textContent = letter
+          name.append(glyph)
+          if (index < letters.length - 1) {
+            const dot = document.createElement('span')
+            dot.className = 'stg-board-dot'
+            dot.setAttribute('aria-hidden', 'true')
+            name.append(dot)
+          }
+        })
       const score = document.createElement('span')
       score.className = 'stg-board-score'
       score.textContent = String(row.score)
