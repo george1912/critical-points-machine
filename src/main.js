@@ -196,14 +196,19 @@ app.innerHTML = `
             </label>
             <label>
               Picture or PDF
-              <input
-                id="feedbackFile"
-                name="file"
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif,application/pdf,.png,.jpg,.jpeg,.webp,.gif,.heic,.heif,.pdf"
-              />
+              <span class="feedback-drop" id="feedbackDrop">
+                <span class="feedback-drop-copy">
+                  <span class="feedback-drop-title" id="feedbackFileName">Choose a picture or PDF</span>
+                  <span class="feedback-drop-hint" id="feedbackFileHint">Optional</span>
+                </span>
+                <input
+                  id="feedbackFile"
+                  name="file"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif,application/pdf,.png,.jpg,.jpeg,.webp,.gif,.heic,.heif,.pdf"
+                />
+              </span>
             </label>
-            <p id="feedbackFileName" class="feedback-file-name">No file chosen. Optional.</p>
             <label>
               Contact (optional)
               <input
@@ -212,7 +217,7 @@ app.innerHTML = `
                 type="text"
                 maxlength="200"
                 autocomplete="off"
-                placeholder="Email, phone, or another way to reach you"
+                placeholder="Email or phone"
               />
             </label>
             <input class="feedback-honey" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" />

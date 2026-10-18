@@ -52,7 +52,9 @@ export const mountFeedbackForm = () => {
 
   const blurbEl = form.querySelector('#feedbackBlurb')
   const fileEl = form.querySelector('#feedbackFile')
+  const dropEl = form.querySelector('#feedbackDrop')
   const fileNameEl = form.querySelector('#feedbackFileName')
+  const fileHintEl = form.querySelector('#feedbackFileHint')
   const contactEl = form.querySelector('#feedbackContact')
   const honeyEl = form.querySelector('[name="_honey"]')
   const sendEl = form.querySelector('#feedbackSend')
@@ -63,13 +65,44 @@ export const mountFeedbackForm = () => {
     statusEl.classList.toggle('error', isError)
   }
 
+  const showChosenFile = () => {
+    const file = fileEl.files?.[0]
+    fileNameEl.textContent = file ? file.name : 'Choose a picture or PDF'
+    fileHintEl.textContent = file ? 'Click to choose a different file' : 'Optional'
+  }
+
   panel.addEventListener('toggle', () => {
     if (panel.open) track('feedback-opened')
   })
 
+  const clearStatus = () => setStatus('')
+
+  blurbEl.addEventListener('input', clearStatus)
+  contactEl.addEventListener('input', clearStatus)
+
   fileEl.addEventListener('change', () => {
-    const file = fileEl.files?.[0]
-    fileNameEl.textContent = file ? file.name : 'No file chosen. Optional.'
+    showChosenFile()
+    clearStatus()
+  })
+
+  dropEl.addEventListener('dragover', (event) => {
+    event.preventDefault()
+    dropEl.classList.add('is-dragover')
+  })
+
+  dropEl.addEventListener('dragleave', () => {
+    dropEl.classList.remove('is-dragover')
+  })
+
+  dropEl.addEventListener('drop', (event) => {
+    event.preventDefault()
+    dropEl.classList.remove('is-dragover')
+    const file = event.dataTransfer?.files?.[0]
+    if (!file) return
+    const transfer = new DataTransfer()
+    transfer.items.add(file)
+    fileEl.files = transfer.files
+    showChosenFile()
   })
 
   form.addEventListener('submit', async (event) => {
@@ -77,7 +110,7 @@ export const mountFeedbackForm = () => {
 
     if (honeyEl.value.trim()) {
       form.reset()
-      fileNameEl.textContent = 'No file chosen. Optional.'
+      showChosenFile()
       setStatus('Sent.')
       return
     }
@@ -98,7 +131,7 @@ export const mountFeedbackForm = () => {
     try {
       await postFeedback(inspected.draft)
       form.reset()
-      fileNameEl.textContent = 'No file chosen. Optional.'
+      showChosenFile()
       track('feedback-sent')
       setStatus('Sent. It is on its way.')
     } catch (error) {
