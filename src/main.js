@@ -8,6 +8,7 @@ import {
   renderLeaderboard,
   submitScore,
 } from './tetris-leaderboard.js'
+import { finalizeTopicContent, mapActiveLearningSection } from './topic-mapping.js'
 
 const log = (...args) => console.log('[CP Worksheet]', ...args)
 const logError = (...args) => console.error('[CP Worksheet]', ...args)
@@ -673,31 +674,6 @@ const clipTopicContent = (rawContent, subConcept = '') => {
 
 /** All section titles that can appear under Topics — used to slice the next block. */
 const topicBoundaryLabels = () => [...new Set([...KNOWN_CATEGORIES])]
-const removeSubConceptPrefixFromContent = (subConcept, content) => {
-  let cleaned = normalizeWhitespace(content)
-  const escapedSubConcept = escapeRegExp(subConcept)
-  const subConceptPatternWithOrWithoutParens = new RegExp(
-    `^${escapedSubConcept}\\s*(?:\\(\\s*\\d+\\s*item[s]?\\s*\\)|\\d+\\s*item[s]?)?\\s*`,
-    'i',
-  )
-
-  cleaned = cleaned.replace(subConceptPatternWithOrWithoutParens, '').trimStart()
-
-  // Safety fallback for odd spacing/encoding that bypasses the regex above.
-  if (cleaned.toLowerCase().startsWith(subConcept.toLowerCase())) {
-    cleaned = cleaned.slice(subConcept.length).trimStart()
-    if (cleaned.startsWith('(')) {
-      const closeParenIndex = cleaned.indexOf(')')
-      if (closeParenIndex !== -1 && /item/i.test(cleaned.slice(0, closeParenIndex + 1))) {
-        cleaned = cleaned.slice(closeParenIndex + 1).trimStart()
-      }
-    } else {
-      cleaned = cleaned.replace(/^\d+\s*item[s]?\s*/i, '').trimStart()
-    }
-  }
-
-  return cleaned
-}
 
 const extractTextFromPdf = async (file) => {
   if (!file || typeof file.arrayBuffer !== 'function') {
@@ -1226,11 +1202,9 @@ const extractFromMajorCategorySoft = (fullText, category, boundaryCategories = K
     subConcept,
   )
 
-  const cleanedContent = removeSubConceptPrefixFromContent(subConcept, rawContent)
-
   return {
     subConcept,
-    content: cleanedContent || rawContent || '',
+    content: finalizeTopicContent(subConcept, rawContent),
   }
 }
 
@@ -1293,10 +1267,7 @@ const parseTopicsOnlyFallback = (fullText) => {
       score: entry.index, // synthetic rank score so existing sorting/picker flow still works
       mapping: {
         subConcept: mapped.subConcept || entry.category,
-        content:
-          removeSubConceptPrefixFromContent(mapped.subConcept || entry.category, mapped.content) ||
-          mapped.content ||
-          '',
+        content: finalizeTopicContent(mapped.subConcept || entry.category, mapped.content),
       },
     }
   })
@@ -1336,19 +1307,12 @@ const extractTopicMapping = (fullText, category, boundaryCategories = KNOWN_CATE
   let subConcept = ''
   let rawContent = ''
 
+  const mappedFromTemplate = mapActiveLearningSection(section, clipTopicContent)
   if (subConceptMatch) {
-    subConcept = normalizeWhitespace(subConceptMatch[1])
-    const contentMatches = [...section.matchAll(/([^()]+?)\s+\(Active Learning Template/gi)]
-    if (!contentMatches.length) {
+    if (!mappedFromTemplate) {
       throw new Error(`Could not extract sub concept/content for "${category}".`)
     }
-
-    rawContent = normalizeWhitespace(contentMatches[0][1])
-    const subConceptIndex = rawContent.toLowerCase().indexOf(subConcept.toLowerCase())
-    if (subConceptIndex > 0) {
-      rawContent = rawContent.slice(subConceptIndex)
-    }
-    rawContent = clipTopicContent(rawContent, subConcept)
+    return mappedFromTemplate
   } else {
     const colonIdx = section.indexOf(':')
     if (colonIdx === -1) {
@@ -1371,11 +1335,9 @@ const extractTopicMapping = (fullText, category, boundaryCategories = KNOWN_CATE
     )
   }
 
-  const cleanedContent = removeSubConceptPrefixFromContent(subConcept, rawContent)
-
   return {
     subConcept,
-    content: cleanedContent || rawContent,
+    content: finalizeTopicContent(subConcept, rawContent),
   }
 }
 
