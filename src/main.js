@@ -99,7 +99,10 @@ app.innerHTML = `
           <p class="section-title">Three Worksheets<br /><span class="title-line">One PDF</span></p>
         </div>
         <p class="template-note">Review P1–P3 (including the points you wrote), then save them together.</p>
-        <button id="generateCombined" type="button">Download combined PDF</button>
+        <button id="generateCombined" class="download-button" type="button">
+          <span class="download-label">Download pages 1–3</span>
+          <span class="download-kind">PDF</span>
+        </button>
       </section>
 
       <section class="section control-grid human-check">
@@ -1484,7 +1487,10 @@ const renderWorksheetCards = () => {
         </label>
 
         <div class="worksheet-actions">
-          <button class="generate-one" data-worksheet-id="${id}" type="button">Download ${id.toUpperCase()} PDF</button>
+          <button class="generate-one download-button" data-worksheet-id="${id}" type="button">
+            <span class="download-label">Download page ${id.slice(1)}</span>
+            <span class="download-kind">PDF</span>
+          </button>
         </div>
       </article>
     `,

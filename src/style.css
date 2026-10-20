@@ -758,6 +758,29 @@ button:disabled {
   transform: none;
 }
 
+.download-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+  padding: 8px 8px 8px 22px;
+}
+
+.download-label {
+  line-height: 1.2;
+}
+
+.download-kind {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 11px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
 #status {
   min-height: 20px;
   color: var(--ok);
